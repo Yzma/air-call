@@ -104,7 +104,7 @@ export default function CallListContextProvider({
     queryFn: async () => {
       const { data } = await axios.get('http://localhost:5000/activities/')
       console.log('NEW FETCH: ', data)
-      const sortedData = sortArray(data)
+      const sortedData = sortAndTransform(data)
       return sortedData
     },
     refetchOnMount: false,
@@ -116,6 +116,7 @@ export default function CallListContextProvider({
     ResponseError,
     ActivityIdParams
   >({
+    mutationKey: ['updateCall'],
     mutationFn: async (variables) => {
       const { data } = await axios.patch(
         `http://localhost:5000/activities/${variables.id}`,
@@ -126,18 +127,40 @@ export default function CallListContextProvider({
       return data
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
-    mutationKey: ['updateCall'],
   })
 
   const resetAllActivitiesMutation = useMutation<PhoneCallResponseType[]>({
+    mutationKey: ['resetAll'],
     mutationFn: async () => {
       const { data } = await axios.patch(
         'http://localhost:5000/activities/reset'
       )
       return data
     },
-    mutationKey: ['resetAll'],
   })
+
+  const sortAndTransform = useCallback(
+    (phoneCalls: PhoneCallResponseType[]) => {
+      // console.log('sortedArray')
+
+      const mappedData = phoneCalls.reduceRight((accumulator, entry) => {
+        const phoneCall = transformPhoneCall(entry)
+        const dateKey = hashPhoneCallKey(phoneCall)
+
+        const foundMapEntry = accumulator.get(dateKey)
+        if (foundMapEntry) {
+          foundMapEntry.calls.push(phoneCall)
+        } else {
+          accumulator.set(dateKey, { time: dateKey, calls: [phoneCall] })
+        }
+
+        return accumulator
+      }, new Map<string, PhoneCallReturn>())
+
+      return Array.from(mappedData.values())
+    },
+    [hashPhoneCallKey, transformPhoneCall]
+  )
 
   const sortArray = useCallback(
     (phoneCalls: PhoneCallResponseType[]) => {
@@ -162,11 +185,7 @@ export default function CallListContextProvider({
     [hashPhoneCallKey, transformPhoneCall]
   )
 
-  // if (getAllActivitiesQuery.data) {
-  //   console.log('getAllActivitiesQuery - ', getAllActivitiesQuery.data[0])
-  // }
-
-  const sortPhoneCallsObjectNew = useCallback(
+  const sortPhoneCallsObject = useCallback(
     (phoneCalls: PhoneCallResponseType[]) => {
       const mappedData = phoneCalls.reduceRight(
         (accumulator, entry) => {
@@ -182,18 +201,18 @@ export default function CallListContextProvider({
     [transformPhoneCall]
   )
 
-  const sortPhoneCallsObject = useCallback(() => {
-    const mappedData = mockPhoneCalls.reduceRight(
-      (accumulator, entry) => {
-        const phoneCall = transformPhoneCall(entry)
-        accumulator[phoneCall.id] = phoneCall
-        return accumulator
-      },
-      {} as Record<string, PhoneCallType>
-    )
+  // const sortPhoneCallsObject = useCallback(() => {
+  //   const mappedData = mockPhoneCalls.reduceRight(
+  //     (accumulator, entry) => {
+  //       const phoneCall = transformPhoneCall(entry)
+  //       accumulator[phoneCall.id] = phoneCall
+  //       return accumulator
+  //     },
+  //     {} as Record<string, PhoneCallType>
+  //   )
 
-    return mappedData
-  }, [transformPhoneCall])
+  //   return mappedData
+  // }, [transformPhoneCall])
 
   const reducer = (
     state: State,
@@ -213,7 +232,7 @@ export default function CallListContextProvider({
 
   const [testMapObject, setTestMapObject] = useState<
     Record<string, PhoneCallType>
-  >(sortPhoneCallsObject())
+  >(sortPhoneCallsObject(mockPhoneCalls))
 
   // const archiveAllCalls = useCallback(() => {
   //   console.log('archiveAllCalls')
@@ -256,14 +275,6 @@ export default function CallListContextProvider({
   )
 
   const [state, dispatch] = useReducer(reducer, initialState)
-
-  // const allActivitiesTransformed = useMemo(() => {
-  //   if (!getAllActivitiesQuery.data) {
-  //     return []
-  //   }
-  //   const sortedData = sortArray(getAllActivitiesQuery.data)
-  //   return sortedData
-  // }, [getAllActivitiesQuery.data, sortArray])
 
   const callListContextValue = useMemo(
     () => ({
