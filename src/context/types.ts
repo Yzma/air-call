@@ -1,4 +1,4 @@
-import { type PhoneCallResponseType } from '@/MockPhoneData'
+import { type PhoneCallResponseType } from '@/types'
 import { type AxiosError } from 'axios'
 
 export type PhoneCallType = {

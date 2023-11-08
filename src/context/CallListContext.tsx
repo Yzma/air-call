@@ -1,4 +1,4 @@
-import { type PhoneCallResponseType, mockPhoneCalls } from '@/MockPhoneData'
+import { mockPhoneCalls } from '@/MockPhoneData'
 import { type PhoneCallType } from '@hooks/useCallList_old'
 import axios from 'axios'
 import {
@@ -21,6 +21,7 @@ import {
   type ActivityIdParams,
   type PhoneCallReturn,
 } from './types'
+import { type PhoneCallResponseType } from '@/types'
 
 export type CallListContextType = {
   testMapObject: Record<string, PhoneCallType>

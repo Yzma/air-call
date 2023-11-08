@@ -1,5 +1,6 @@
-import { mockPhoneCalls, type PhoneCallResponseType } from '@/MockPhoneData'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { mockPhoneCalls } from '@/MockPhoneData'
+import { type PhoneCallResponseType } from '@/types'
+import { useCallback, useMemo, useState } from 'react'
 
 export type PhoneCallType = {
   created_at: Date
