@@ -35,11 +35,11 @@ export const CallCard = React.forwardRef<
   const variables = useMutationState<string>({
     filters: { mutationKey: ['updateCall'], status: 'pending' },
     select: (mutation) => {
-      console.log('select ran for ', call.id)
+      //console.log('select ran for ', call.id)
       return mutation.state.variables.id === call.id
     },
   })
-  console.log('variables: ', variables)
+  //console.log('variables: ', variables)
   return (
     <>
       <Dialog>
