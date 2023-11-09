@@ -7,7 +7,10 @@
   - Invalid phone calls are marked with an exclamation point icon to indicate that the call is invalid
 - The number on the phone icon represents a real-time count of unarchived phone calls
   - After archiving/unarchiving a call, you should see the number update to reflect the change
+- There is no scroll wheel by design as I'm trying to emulate what it would look like on a mobile device
 
+TODO:
+- The other pages have no functionality and are merely there for display
 
 ### Example of valid phone call:
 
