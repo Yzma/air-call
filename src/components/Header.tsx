@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useNavigation } from '@hooks/useNavigation'
 import { Separator } from './ui/separator'
 import { type NavigationContextType } from '@/context/NavigationContext'
-import useCallList from '@hooks/useCallList'
 
 type HeaderIconProps = {
   page: NavigationContextType['headerOption']
@@ -32,7 +31,6 @@ function HeaderIcon({ page, title }: HeaderIconProps) {
 
 export default function Header() {
   const navigation = useNavigation()
-  const call = useCallList()
   return (
     <header className="group flex h-14 select-none justify-between rounded-t-xl bg-white p-6 shadow-[rgba(0,_0,_0,_0.05)_0px_1px_4px_0px]">
       <div className="flex cursor-pointer items-center gap-x-2">
@@ -46,10 +44,6 @@ export default function Header() {
       {navigation.page === 'call-list' && (
         <div className="relative flex items-center gap-x-3 text-gray-700">
           <HeaderIcon page={'inbox'} title="Inbox" />
-          {/* <FontAwesomeIcon
-          icon={faEllipsisVertical}
-          className="h-4 w-4 text-gray-400"
-        /> */}
           <Separator orientation="vertical" className="h-5 w-[0.08rem]" />
           <HeaderIcon page={'archived'} title="Archived" />
           <Separator orientation="vertical" className="h-5 w-[0.08rem]" />
@@ -60,8 +54,11 @@ export default function Header() {
               navigation.excludeInvalidCalls ? 'text-green-500' : 'text-red-500'
             )}
             onClick={
-              () => call.archiveAllCalls()
-              //navigation.setExcludeInvalidCalls(!navigation.excludeInvalidCalls)
+              () =>
+                navigation.setExcludeInvalidCalls(
+                  !navigation.excludeInvalidCalls
+                )
+              //call.archiveAllCalls()
             }
             icon={faSliders}
           />
