@@ -1,5 +1,6 @@
 import Footer from '@components/Footer'
 import Header from '@components/Header'
+import { Toaster } from '@components/ui/toaster'
 import { useNavigation } from '@hooks/useNavigation'
 import AccountPage from '@pages/AccountPage'
 import InboxPage from '@pages/InboxPage'
@@ -20,7 +21,7 @@ export default function App() {
             {nav.page === 'mentions' && <MentionsPage />}
             {nav.page === 'settings' && <SettingsPage />}
           </div>
-
+          <Toaster />
           <Footer />
         </div>
       </div>
