@@ -7,7 +7,7 @@ import {
   ArchiveCardText,
 } from '@components/ui/archive-card'
 import { faBoxArchive, faBoxOpen } from '@fortawesome/free-solid-svg-icons'
-import useCallList from '@hooks/useCallList_old'
+import useCallList from '@hooks/useCallList'
 import React from 'react'
 
 export const ArchiveAllCard = React.forwardRef<

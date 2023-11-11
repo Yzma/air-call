@@ -18,7 +18,6 @@ export const ErrorCard = React.forwardRef<
   console.log(callList.getAllActivitiesQuery)
   return (
     <Card className="bg-destructive text-white" ref={ref} {...props}>
-      {/* <div className="flex h-16 w-full select-none items-center rounded-xl border bg-red-500 p-3 text-sm text-black"> */}
       <CardContent>
         <div className="flex items-center gap-x-2">
           <FontAwesomeIcon icon={faCircleExclamation} className="h-4 w-4" />
