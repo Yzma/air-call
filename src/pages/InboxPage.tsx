@@ -1,10 +1,7 @@
 import useCallList from '@hooks/useCallList'
 import { Fragment, useMemo } from 'react'
 import { CallSeparator } from '@components/ui/call-separator'
-import {
-  ArchiveAllCard,
-  UnarchiveAllCard,
-} from '@components/cards/ArchiveCards'
+import { UnarchiveAllCard } from '@components/cards/ArchiveCards'
 import { CallCard } from '@components/cards/CallCard'
 import { useNavigation } from '@hooks/useNavigation'
 import LoadingCards from '@components/LoadingCards'
@@ -13,14 +10,8 @@ import { ErrorCard } from '@components/cards/ErrorCard'
 export default function InboxPage() {
   const call = useCallList()
   const nav = useNavigation()
-
-  // console.log('testMapObject (Normal)', call.testMapObject)
-  console.log('testMapObject (Normal)', call.state)
-
+  console.log('asd')
   const meme = useMemo(() => {
-    console.log('MEME Updated')
-    console.log('testMapObject (FROM MEME)', call.state)
-
     if (call.getAllActivitiesQuery.status === 'error') {
       return <ErrorCard />
     }
@@ -29,14 +20,12 @@ export default function InboxPage() {
       return <LoadingCards />
     }
 
+    const data = Array.from(call.getAllActivitiesQuery.data.values())
+
     return (
       <>
-        {nav.headerOption === 'inbox' ? (
-          <ArchiveAllCard />
-        ) : (
-          <UnarchiveAllCard />
-        )}
-        {call.getAllActivitiesQuery.data.map((e) => {
+        {nav.headerOption === 'archived' && <UnarchiveAllCard />}
+        {data.map((e) => {
           const calls = e.calls.filter((e) => {
             return (
               (nav.excludeInvalidCalls ? e.isValid : true) &&
@@ -59,7 +48,6 @@ export default function InboxPage() {
   }, [
     call.getAllActivitiesQuery.data,
     call.getAllActivitiesQuery.status,
-    call.state,
     nav.excludeInvalidCalls,
     nav.headerOption,
   ])

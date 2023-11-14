@@ -12,13 +12,10 @@ export default function useCallList() {
 
   return {
     archiveCall: context.archiveCall,
+    unarchiveAllCalls: context.unarchiveAllCalls,
     unarchiveCall: context.unarchiveCall,
     getAllActivitiesQuery: context.getAllActivitiesQuery,
     updateActivityByIdMutation: context.updateActivityByIdMutation,
     resetAllActivitiesMutation: context.resetAllActivitiesMutation,
-    state: context.state,
-    dispatch: context.dispatch,
-    archiveAllCalls: context.archiveAllCalls,
-    testMapObject: context.testMapObject,
   }
 }

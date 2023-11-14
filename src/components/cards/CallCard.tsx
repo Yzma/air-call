@@ -12,7 +12,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { convertSeconds, getDateTime, getDateTimePeriod } from '@utils/utils'
 import { type PhoneCallCardType } from './types'
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogClose,
@@ -26,13 +26,14 @@ import { cn } from '@/lib/utils'
 import { Button } from '@components/ui/button'
 import useCallList from '@hooks/useCallList'
 import { useMutationState } from '@tanstack/react-query'
+import { type PhoneCallResponseType } from '@/types'
 
 export const CallCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & PhoneCallCardType
 >(({ call, ...props }, ref) => {
   const callList = useCallList()
-  const variables = useMutationState<string>({
+  const variables = useMutationState<PhoneCallResponseType>({
     filters: { mutationKey: ['updateCall'], status: 'pending' },
     select: (mutation) => {
       //console.log('select ran for ', call.id)
@@ -49,7 +50,7 @@ export const CallCard = React.forwardRef<
             'px-0 py-2 pl-4 hover:bg-slate-50',
             variables.length > 0 &&
               variables[0] &&
-              'pointer-events-none cursor-none opacity-70'
+              'pointer-events-none cursor-none opacity-20 hover:bg-white'
           )}
           {...props}
         >
@@ -172,7 +173,6 @@ export const CallCard = React.forwardRef<
                   minute: '2-digit',
                 })}
               </div>
-              <div>is Valid: {call.isValid ? 'TRUE' : 'FALSE'}</div>
               <div>{convertSeconds(call.duration)}</div>
               {call.isValid && (
                 <div>
