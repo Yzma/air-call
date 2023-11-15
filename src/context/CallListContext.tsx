@@ -36,6 +36,7 @@ export type CallListContextType = {
     Error,
     void
   >
+  allActivitiesData: PhoneCallReturn[]
 }
 
 export const CallListContext = createContext<CallListContextType>(
@@ -47,13 +48,14 @@ export default function CallListContextProvider({
 }: PropsWithChildren) {
   const queryClient = useQueryClient()
 
-  const getAllActivitiesQuery = useQuery<PhoneCallReturn[], ResponseError>({
+  const getAllActivitiesQuery = useQuery<
+    PhoneCallResponseType[],
+    ResponseError
+  >({
     queryKey: ['calls'],
     queryFn: async () => {
       const { data } = await axios.get('http://localhost:5000/activities/')
-      console.log('NEW FETCH: ', data)
-      const sortedData = sortAndTransform(data)
-      return sortedData
+      return data as PhoneCallResponseType[]
     },
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -160,28 +162,28 @@ export default function CallListContextProvider({
     })
   }, [])
 
-  const sortAndTransform = useCallback(
-    (phoneCalls: PhoneCallResponseType[]) => {
-      // console.log('sortedArray')
+  const allActivitiesData = useMemo<PhoneCallReturn[]>(() => {
+    const phoneCalls = getAllActivitiesQuery.data
+    if (!phoneCalls || phoneCalls.length === 0) {
+      return []
+    }
 
-      const mappedData = phoneCalls.reduceRight((accumulator, entry) => {
-        const phoneCall = transformPhoneCall(entry)
-        const dateKey = hashPhoneCallKey(phoneCall)
+    const mappedData = phoneCalls.reduceRight((accumulator, entry) => {
+      const phoneCall = transformPhoneCall(entry)
+      const dateKey = hashPhoneCallKey(phoneCall)
 
-        const foundMapEntry = accumulator.get(dateKey)
-        if (foundMapEntry) {
-          foundMapEntry.calls.push(phoneCall)
-        } else {
-          accumulator.set(dateKey, { time: dateKey, calls: [phoneCall] })
-        }
+      const foundMapEntry = accumulator.get(dateKey)
+      if (foundMapEntry) {
+        foundMapEntry.calls.push(phoneCall)
+      } else {
+        accumulator.set(dateKey, { time: dateKey, calls: [phoneCall] })
+      }
 
-        return accumulator
-      }, new Map<string, PhoneCallReturn>())
+      return accumulator
+    }, new Map<string, PhoneCallReturn>())
 
-      return Array.from(mappedData.values())
-    },
-    [hashPhoneCallKey, transformPhoneCall]
-  )
+    return Array.from(mappedData.values())
+  }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
 
   const callListContextValue = useMemo(
     () => ({
@@ -191,8 +193,10 @@ export default function CallListContextProvider({
       getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
+      allActivitiesData,
     }),
     [
+      allActivitiesData,
       getAllActivitiesQuery,
       archiveCall,
       unarchiveAllCalls,

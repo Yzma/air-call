@@ -11,6 +11,7 @@ export default function useCallList() {
   }
 
   return {
+    allActivitiesData: context.allActivitiesData,
     archiveCall: context.archiveCall,
     unarchiveAllCalls: context.unarchiveAllCalls,
     unarchiveCall: context.unarchiveCall,
