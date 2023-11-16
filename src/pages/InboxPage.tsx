@@ -11,7 +11,8 @@ export default function InboxPage() {
   const call = useCallList()
   const nav = useNavigation()
 
-  const meme = useMemo(() => {
+  // Wrapped in a memo due to an unnecessary rerender happening when switching tabs in the footer.
+  const inboxMemo = useMemo(() => {
     if (call.getAllActivitiesQuery.status === 'error') {
       return <ErrorCard />
     }
@@ -50,5 +51,5 @@ export default function InboxPage() {
     nav.headerOption,
   ])
 
-  return <div className="flex flex-col gap-y-5">{meme}</div>
+  return <div className="flex flex-col gap-y-5">{inboxMemo}</div>
 }
