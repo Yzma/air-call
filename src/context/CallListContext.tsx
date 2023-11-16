@@ -26,7 +26,7 @@ export type CallListContextType = {
   unarchiveAllCalls: () => void
   unarchiveCall: (call: PhoneCallType) => void
   archiveCall: (call: PhoneCallType) => void
-  getAllActivitiesQuery: UseQueryResult<PhoneCallReturn[], ResponseError>
+  getAllActivitiesQuery: UseQueryResult<PhoneCallResponseType[], ResponseError>
   updateActivityByIdMutation: UseMutationResult<
     PhoneCallResponseType,
     ResponseError,
@@ -34,7 +34,7 @@ export type CallListContextType = {
   >
   resetAllActivitiesMutation: UseMutationResult<
     PhoneCallResponseType[],
-    Error,
+    ResponseError,
     void
   >
   allActivitiesData: CachedActivityData
@@ -78,7 +78,7 @@ export default function CallListContextProvider({
           is_archived: variables.is_archived,
         }
       )
-      return data
+      return data as PhoneCallResponseType
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
     onError(_, variables) {
@@ -92,13 +92,16 @@ export default function CallListContextProvider({
     },
   })
 
-  const resetAllActivitiesMutation = useMutation<PhoneCallResponseType[]>({
+  const resetAllActivitiesMutation = useMutation<
+    PhoneCallResponseType[],
+    ResponseError
+  >({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
       const { data } = await axios.patch(
         'http://localhost:5000/activities/reset'
       )
-      return data
+      return data as PhoneCallResponseType[]
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
     onError() {
@@ -219,13 +222,13 @@ export default function CallListContextProvider({
       allActivitiesData,
     }),
     [
-      allActivitiesData,
-      getAllActivitiesQuery,
-      archiveCall,
       unarchiveAllCalls,
       unarchiveCall,
+      archiveCall,
+      getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
+      allActivitiesData,
     ]
   )
   return (
