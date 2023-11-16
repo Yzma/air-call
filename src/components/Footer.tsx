@@ -45,15 +45,30 @@ FooterIcon.displayName = 'FooterIcon'
 
 export default function Footer() {
   const callList = useCallList()
+  const nav = useNavigation()
 
-  const inboxCount = useMemo(() => 24, [])
+  const currentActivityCount = useMemo(() => {
+    let count = callList.allActivitiesData.inboxStats.totalCount
+
+    if (nav.excludeInvalidCalls) {
+      count -= callList.allActivitiesData.inboxStats.errorCount
+    }
+
+    return count
+  }, [
+    callList.allActivitiesData.inboxStats.errorCount,
+    callList.allActivitiesData.inboxStats.totalCount,
+    nav.excludeInvalidCalls,
+  ])
+
+  console.log('currentActivityCount', currentActivityCount)
 
   return (
     <footer className="relative flex h-12 items-center justify-between rounded-b-xl border-t border-gray-100 bg-white px-6 shadow-[rgba(0,_0,_0,_0.05)_0px_-1px_4px_0px]">
       <FooterIcon icon={faPhone} page={'call-list'}>
-        {inboxCount > 0 && (
+        {currentActivityCount > 0 && (
           <div className="absolute -top-1 left-3 flex w-7 select-none items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white group-hover:bg-orange-600">
-            {inboxCount > 99 ? '99+' : inboxCount}
+            {currentActivityCount > 99 ? '99+' : currentActivityCount}
           </div>
         )}
       </FooterIcon>

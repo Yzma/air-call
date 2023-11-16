@@ -166,13 +166,26 @@ export default function CallListContextProvider({
   const allActivitiesData = useMemo<CachedActivityData>(() => {
     const phoneCalls = getAllActivitiesQuery.data
     if (!phoneCalls || phoneCalls.length === 0) {
-      return { data: [], errorCount: 0, inboxCount: 0 }
+      return {
+        data: [],
+        inboxStats: {
+          errorCount: 0,
+          totalCount: 0,
+        },
+      }
     }
 
     const mappedData = phoneCalls.reduceRight(
       (accumulator, entry) => {
         const phoneCall = transformPhoneCall(entry)
         const dateKey = hashPhoneCallKey(phoneCall)
+
+        if (!phoneCall.is_archived) {
+          if (!phoneCall.isValid) {
+            accumulator.errorCount++
+          }
+          accumulator.totalCount++
+        }
 
         const foundMapEntry = accumulator.map.get(dateKey)
         if (foundMapEntry) {
@@ -183,13 +196,15 @@ export default function CallListContextProvider({
 
         return accumulator
       },
-      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, inboxCount: 0 }
+      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, totalCount: 0 }
     )
 
     return {
       data: Array.from(mappedData.map.values()),
-      errorCount: mappedData.errorCount,
-      inboxCount: mappedData.inboxCount,
+      inboxStats: {
+        errorCount: mappedData.errorCount,
+        totalCount: mappedData.totalCount,
+      },
     }
   }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
 
