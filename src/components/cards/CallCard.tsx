@@ -36,11 +36,21 @@ export const CallCard = React.forwardRef<
   const variables = useMutationState<PhoneCallResponseType>({
     filters: { mutationKey: ['updateCall'], status: 'pending' },
     select: (mutation) => {
-      //console.log('select ran for ', call.id)
-      return mutation.state.variables.id === call.id
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      return mutation.state.variables.id
     },
   })
-  //console.log('variables: ', variables)
+
+  // isLoading is true if the variables hook contains the ID of the CallCard, or if the CallCard is currently archived and the user requested to unarchive all Cards
+  const isLoading =
+    (variables.length > 0 &&
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      variables[0] === call.id) ||
+    (call.is_archived &&
+      callList.resetAllActivitiesMutation.status === 'pending')
+  console.log('variables: ', variables)
   return (
     <>
       <Dialog>
@@ -48,8 +58,7 @@ export const CallCard = React.forwardRef<
           ref={ref}
           className={cn(
             'px-0 py-2 pl-4 hover:bg-slate-50',
-            variables.length > 0 &&
-              variables[0] &&
+            isLoading &&
               'pointer-events-none cursor-none opacity-20 hover:bg-white'
           )}
           {...props}
@@ -82,7 +91,6 @@ export const CallCard = React.forwardRef<
                                   ? faArrowDown
                                   : faArrowUp
                               }
-                              // className="absolute -right-[0.25rem] -top-[0.25rem] h-3 w-3 text-orange-500"
                               className="absolute right-[0.45rem] top-[0.45rem] h-3 w-3 text-orange-500"
                             />
                           </>
@@ -137,11 +145,6 @@ export const CallCard = React.forwardRef<
               </div>
 
               <div className="flex items-center gap-x-2">
-                {/* <FontAwesomeIcon
-                icon={faEllipsisVertical}
-                className="flex h-4 w-4 group-hover:text-gray-700"
-              /> */}
-                {/* <Separator orientation="vertical" className="h-4 bg-gray-600" /> */}
                 <div className="flex w-8 items-center justify-end group-hover:text-gray-700">
                   {getDateTime(call.created_at)}
                 </div>

@@ -55,14 +55,16 @@ export default function CallListContextProvider({
   >({
     queryKey: ['calls'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:5000/activities/')
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_BACKEND}/activities`
+      )
       return data as PhoneCallResponseType[]
     },
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     // Retry only 2 times every 3 seconds
     retry: 2,
-    retryDelay: 1000 * 3, // TODO: is this in milliseconds?
+    retryDelay: 1000 * 3,
   })
 
   const updateActivityByIdMutation = useMutation<
@@ -73,7 +75,7 @@ export default function CallListContextProvider({
     mutationKey: ['updateCall'],
     mutationFn: async (variables) => {
       const { data } = await axios.patch(
-        `http://localhost:5000/activities/${variables.id}`,
+        `${import.meta.env.VITE_BACKEND}/activities/${variables.id}`,
         {
           is_archived: variables.is_archived,
         }
@@ -99,7 +101,7 @@ export default function CallListContextProvider({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
       const { data } = await axios.patch(
-        'http://localhost:5000/activities/reset'
+        `${import.meta.env.VITE_BACKEND}/reset`
       )
       return data as PhoneCallResponseType[]
     },
@@ -114,20 +116,23 @@ export default function CallListContextProvider({
   })
 
   const unarchiveAllCalls = useCallback(() => {
-    resetAllActivitiesMutation.mutate()
+    resetAllActivitiesMutation.mutateAsync()
   }, [resetAllActivitiesMutation])
 
   const unarchiveCall = useCallback(
     (call: PhoneCallType) => {
       console.log('unarchiveCall')
-      updateActivityByIdMutation.mutate({ id: call.id, is_archived: false })
+      updateActivityByIdMutation.mutateAsync({
+        id: call.id,
+        is_archived: false,
+      })
     },
     [updateActivityByIdMutation]
   )
 
   const archiveCall = useCallback(
     (call: PhoneCallType) => {
-      updateActivityByIdMutation.mutate({ id: call.id, is_archived: true })
+      updateActivityByIdMutation.mutateAsync({ id: call.id, is_archived: true })
       console.log('unarchiveCall')
     },
     [updateActivityByIdMutation]
