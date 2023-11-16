@@ -17,6 +17,7 @@ import {
   type ActivityIdParams,
   type PhoneCallReturn,
   type PhoneCallType,
+  type CachedActivityData,
 } from './types'
 import { type PhoneCallResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
@@ -25,7 +26,7 @@ export type CallListContextType = {
   unarchiveAllCalls: () => void
   unarchiveCall: (call: PhoneCallType) => void
   archiveCall: (call: PhoneCallType) => void
-  getAllActivitiesQuery: UseQueryResult<PhoneCallReturn[], ResponseError>
+  getAllActivitiesQuery: UseQueryResult<PhoneCallResponseType[], ResponseError>
   updateActivityByIdMutation: UseMutationResult<
     PhoneCallResponseType,
     ResponseError,
@@ -33,9 +34,10 @@ export type CallListContextType = {
   >
   resetAllActivitiesMutation: UseMutationResult<
     PhoneCallResponseType[],
-    Error,
+    ResponseError,
     void
   >
+  allActivitiesData: CachedActivityData
 }
 
 export const CallListContext = createContext<CallListContextType>(
@@ -47,13 +49,16 @@ export default function CallListContextProvider({
 }: PropsWithChildren) {
   const queryClient = useQueryClient()
 
-  const getAllActivitiesQuery = useQuery<PhoneCallReturn[], ResponseError>({
+  const getAllActivitiesQuery = useQuery<
+    PhoneCallResponseType[],
+    ResponseError
+  >({
     queryKey: ['calls'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:5000/activities/')
-      console.log('NEW FETCH: ', data)
-      const sortedData = sortAndTransform(data)
-      return sortedData
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_BACKEND}/activities`
+      )
+      return data as PhoneCallResponseType[]
     },
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -70,12 +75,12 @@ export default function CallListContextProvider({
     mutationKey: ['updateCall'],
     mutationFn: async (variables) => {
       const { data } = await axios.patch(
-        `http://localhost:5000/activities/${variables.id}`,
+        `${import.meta.env.VITE_BACKEND}/activities/${variables.id}`,
         {
           is_archived: variables.is_archived,
         }
       )
-      return data
+      return data as PhoneCallResponseType
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
     onError(_, variables) {
@@ -89,13 +94,16 @@ export default function CallListContextProvider({
     },
   })
 
-  const resetAllActivitiesMutation = useMutation<PhoneCallResponseType[]>({
+  const resetAllActivitiesMutation = useMutation<
+    PhoneCallResponseType[],
+    ResponseError
+  >({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
       const { data } = await axios.patch(
-        'http://localhost:5000/activities/reset'
+        `${import.meta.env.VITE_BACKEND}/reset`
       )
-      return data
+      return data as PhoneCallResponseType[]
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
     onError() {
@@ -108,21 +116,22 @@ export default function CallListContextProvider({
   })
 
   const unarchiveAllCalls = useCallback(() => {
-    resetAllActivitiesMutation.mutate()
+    resetAllActivitiesMutation.mutateAsync()
   }, [resetAllActivitiesMutation])
 
   const unarchiveCall = useCallback(
     (call: PhoneCallType) => {
-      console.log('unarchiveCall')
-      updateActivityByIdMutation.mutate({ id: call.id, is_archived: false })
+      updateActivityByIdMutation.mutateAsync({
+        id: call.id,
+        is_archived: false,
+      })
     },
     [updateActivityByIdMutation]
   )
 
   const archiveCall = useCallback(
     (call: PhoneCallType) => {
-      updateActivityByIdMutation.mutate({ id: call.id, is_archived: true })
-      console.log('unarchiveCall')
+      updateActivityByIdMutation.mutateAsync({ id: call.id, is_archived: true })
     },
     [updateActivityByIdMutation]
   )
@@ -160,28 +169,50 @@ export default function CallListContextProvider({
     })
   }, [])
 
-  const sortAndTransform = useCallback(
-    (phoneCalls: PhoneCallResponseType[]) => {
-      // console.log('sortedArray')
+  const allActivitiesData = useMemo<CachedActivityData>(() => {
+    const phoneCalls = getAllActivitiesQuery.data
+    if (!phoneCalls || phoneCalls.length === 0) {
+      return {
+        data: [],
+        inboxStats: {
+          errorCount: 0,
+          totalCount: 0,
+        },
+      }
+    }
 
-      const mappedData = phoneCalls.reduceRight((accumulator, entry) => {
+    const mappedData = phoneCalls.reduceRight(
+      (accumulator, entry) => {
         const phoneCall = transformPhoneCall(entry)
         const dateKey = hashPhoneCallKey(phoneCall)
 
-        const foundMapEntry = accumulator.get(dateKey)
+        if (!phoneCall.is_archived) {
+          if (!phoneCall.isValid) {
+            accumulator.errorCount++
+          }
+          accumulator.totalCount++
+        }
+
+        const foundMapEntry = accumulator.map.get(dateKey)
         if (foundMapEntry) {
           foundMapEntry.calls.push(phoneCall)
         } else {
-          accumulator.set(dateKey, { time: dateKey, calls: [phoneCall] })
+          accumulator.map.set(dateKey, { time: dateKey, calls: [phoneCall] })
         }
 
         return accumulator
-      }, new Map<string, PhoneCallReturn>())
+      },
+      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, totalCount: 0 }
+    )
 
-      return Array.from(mappedData.values())
-    },
-    [hashPhoneCallKey, transformPhoneCall]
-  )
+    return {
+      data: Array.from(mappedData.map.values()),
+      inboxStats: {
+        errorCount: mappedData.errorCount,
+        totalCount: mappedData.totalCount,
+      },
+    }
+  }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
 
   const callListContextValue = useMemo(
     () => ({
@@ -191,14 +222,16 @@ export default function CallListContextProvider({
       getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
+      allActivitiesData,
     }),
     [
-      getAllActivitiesQuery,
-      archiveCall,
       unarchiveAllCalls,
       unarchiveCall,
+      archiveCall,
+      getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
+      allActivitiesData,
     ]
   )
   return (
