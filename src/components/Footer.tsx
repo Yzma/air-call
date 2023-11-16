@@ -61,8 +61,6 @@ export default function Footer() {
     nav.excludeInvalidCalls,
   ])
 
-  console.log('currentActivityCount', currentActivityCount)
-
   return (
     <footer className="relative flex h-12 items-center justify-between rounded-b-xl border-t border-gray-100 bg-white px-6 shadow-[rgba(0,_0,_0,_0.05)_0px_-1px_4px_0px]">
       <FooterIcon icon={faPhone} page={'call-list'}>

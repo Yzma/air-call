@@ -12,7 +12,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { convertSeconds, getDateTime, getDateTimePeriod } from '@utils/utils'
 import { type PhoneCallCardType } from './types'
-import React, { useState } from 'react'
+import React from 'react'
 import {
   Dialog,
   DialogClose,
@@ -181,8 +181,8 @@ export const CallCard = React.forwardRef<
               )}
             </div>
             <DialogFooter>
-              <DialogClose>
-                {call.is_archived && (
+              <DialogClose asChild>
+                {call.is_archived ? (
                   <Button
                     size={'sm'}
                     type="submit"
@@ -190,8 +190,7 @@ export const CallCard = React.forwardRef<
                   >
                     Unarchive
                   </Button>
-                )}
-                {!call.is_archived && (
+                ) : (
                   <Button
                     size={'sm'}
                     type="submit"
