@@ -1,4 +1,4 @@
-import { type PhoneCallType } from '@hooks/useCallList_old'
+import { type PhoneCallType } from '@/context/types'
 
 export type PhoneCallCardType = {
   call: PhoneCallType

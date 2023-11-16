@@ -53,12 +53,8 @@ export default function Header() {
               `h-4 w-4 cursor-pointer hover:text-gray-700`,
               navigation.excludeInvalidCalls ? 'text-green-500' : 'text-red-500'
             )}
-            onClick={
-              () =>
-                navigation.setExcludeInvalidCalls(
-                  !navigation.excludeInvalidCalls
-                )
-              //call.archiveAllCalls()
+            onClick={() =>
+              navigation.setExcludeInvalidCalls(!navigation.excludeInvalidCalls)
             }
             icon={faSliders}
           />
