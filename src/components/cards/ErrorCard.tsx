@@ -15,7 +15,7 @@ export const ErrorCard = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(({ ...props }, ref) => {
   const callList = useCallList()
-  console.log(callList.getAllActivitiesQuery)
+
   return (
     <Card className="bg-destructive text-white" ref={ref} {...props}>
       <CardContent>

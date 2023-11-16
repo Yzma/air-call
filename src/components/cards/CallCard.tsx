@@ -50,7 +50,7 @@ export const CallCard = React.forwardRef<
       variables[0] === call.id) ||
     (call.is_archived &&
       callList.resetAllActivitiesMutation.status === 'pending')
-  console.log('variables: ', variables)
+
   return (
     <>
       <Dialog>
