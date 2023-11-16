@@ -121,7 +121,6 @@ export default function CallListContextProvider({
 
   const unarchiveCall = useCallback(
     (call: PhoneCallType) => {
-      console.log('unarchiveCall')
       updateActivityByIdMutation.mutateAsync({
         id: call.id,
         is_archived: false,
@@ -133,7 +132,6 @@ export default function CallListContextProvider({
   const archiveCall = useCallback(
     (call: PhoneCallType) => {
       updateActivityByIdMutation.mutateAsync({ id: call.id, is_archived: true })
-      console.log('unarchiveCall')
     },
     [updateActivityByIdMutation]
   )

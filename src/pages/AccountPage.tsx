@@ -19,7 +19,7 @@ export default function AccountPage() {
 
           <div className="text-center">
             <p className="text-2xl font-bold text-black">Andrew Caruso</p>
-            <p className="text-sm text-gray-600">What an epic description</p>
+            <p className="text-sm text-gray-600">What a great description!</p>
           </div>
         </div>
         <div className="flex flex-col gap-y-4">
