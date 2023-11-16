@@ -23,7 +23,7 @@ export default function InboxPage() {
     return (
       <>
         {nav.headerOption === 'archived' && <UnarchiveAllCard />}
-        {call.allActivitiesData.map((e) => {
+        {call.allActivitiesData.data.map((e) => {
           const calls = e.calls.filter((e) => {
             return (
               (nav.excludeInvalidCalls ? e.isValid : true) && // If excludeInvalidCalls is true, then exclude all invalid calls (on both the inbox and archived page)

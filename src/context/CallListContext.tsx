@@ -17,6 +17,7 @@ import {
   type ActivityIdParams,
   type PhoneCallReturn,
   type PhoneCallType,
+  type CachedActivityData,
 } from './types'
 import { type PhoneCallResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
@@ -36,7 +37,7 @@ export type CallListContextType = {
     Error,
     void
   >
-  allActivitiesData: PhoneCallReturn[]
+  allActivitiesData: CachedActivityData
 }
 
 export const CallListContext = createContext<CallListContextType>(
@@ -61,7 +62,7 @@ export default function CallListContextProvider({
     refetchOnWindowFocus: false,
     // Retry only 2 times every 3 seconds
     retry: 2,
-    retryDelay: 1000 * 3,
+    retryDelay: 1000 * 3, // TODO: is this in milliseconds?
   })
 
   const updateActivityByIdMutation = useMutation<
@@ -162,27 +163,34 @@ export default function CallListContextProvider({
     })
   }, [])
 
-  const allActivitiesData = useMemo<PhoneCallReturn[]>(() => {
+  const allActivitiesData = useMemo<CachedActivityData>(() => {
     const phoneCalls = getAllActivitiesQuery.data
     if (!phoneCalls || phoneCalls.length === 0) {
-      return []
+      return { data: [], errorCount: 0, inboxCount: 0 }
     }
 
-    const mappedData = phoneCalls.reduceRight((accumulator, entry) => {
-      const phoneCall = transformPhoneCall(entry)
-      const dateKey = hashPhoneCallKey(phoneCall)
+    const mappedData = phoneCalls.reduceRight(
+      (accumulator, entry) => {
+        const phoneCall = transformPhoneCall(entry)
+        const dateKey = hashPhoneCallKey(phoneCall)
 
-      const foundMapEntry = accumulator.get(dateKey)
-      if (foundMapEntry) {
-        foundMapEntry.calls.push(phoneCall)
-      } else {
-        accumulator.set(dateKey, { time: dateKey, calls: [phoneCall] })
-      }
+        const foundMapEntry = accumulator.map.get(dateKey)
+        if (foundMapEntry) {
+          foundMapEntry.calls.push(phoneCall)
+        } else {
+          accumulator.map.set(dateKey, { time: dateKey, calls: [phoneCall] })
+        }
 
-      return accumulator
-    }, new Map<string, PhoneCallReturn>())
+        return accumulator
+      },
+      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, inboxCount: 0 }
+    )
 
-    return Array.from(mappedData.values())
+    return {
+      data: Array.from(mappedData.map.values()),
+      errorCount: mappedData.errorCount,
+      inboxCount: mappedData.inboxCount,
+    }
   }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
 
   const callListContextValue = useMemo(

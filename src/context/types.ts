@@ -18,6 +18,12 @@ export type PhoneCallType = {
       }
   )
 
+export type CachedActivityData = {
+  data: PhoneCallReturn[]
+  inboxCount: number
+  errorCount: number
+}
+
 export type PhoneCallReturn = {
   time: string
   calls: PhoneCallType[]
