@@ -51,7 +51,7 @@ export const CallCard = React.forwardRef<
   // isLoading is true if the variables hook contains the ID of the CallCard, or if the CallCard is currently archived and the user requested to unarchive all Cards
   const isLoading = useMemo(() => {
     return (
-      (variables.length > 0 && variables[0] === call.id) ||
+      (variables.length > 0 && variables.includes(call.id)) ||
       (call.is_archived &&
         callList.resetAllActivitiesMutation.status === 'pending')
     )
