@@ -4,8 +4,8 @@
   - This allows you to view/modify the cache and observe specific states, such as loading and error
 - Clicking the "switches" icon in the top right hand corner will toggle if "invalid" phone calls are shown or not
   - Some phone call objects from the API are incomplete. To handle this, after fetching all phone calls, the returned result is transformed into a separate object with additional properties. One of these properties is called 'isValid,' which returns true if the object contains all the necessary properties; otherwise, it returns false
-  - Invalid phone calls are marked with an exclamation point icon to indicate that the call is invalid
-- The number on the phone icon represents a real-time count of inboxed phone calls
+  - Invalid phone calls are marked with an exclamation point icon to indicate that the call is invalid on the Inbox page
+- The number on the phone icon represents a real-time count of inboxed phone calls on the Footer
   - After archiving/unarchiving a call, you should see the number update to reflect the change
 - There is no scroll wheel by design as I'm trying to emulate what it would look like on a mobile device
 - The other pages have no functionality and are merely there for display
