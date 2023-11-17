@@ -3,7 +3,7 @@
 - React Query Dev Tools are still enabled
   - This allows you to view/modify the cache and observe specific states, such as loading and error
 - Clicking the "switches" icon in the top right hand corner will toggle if "invalid" phone calls are shown or not
-  - Some activity objects from the API are incomplete. To handle this, after fetching all activities, the returned result is transformed into a separate object with additional properties. One of these properties is called 'isValid,' which returns true if the object contains all the necessary properties; otherwise, it returns false
+  - Some phone call objects from the API are incomplete. To handle this, after fetching all phone calls, the returned result is transformed into a separate object with additional properties. One of these properties is called 'isValid,' which returns true if the object contains all the necessary properties; otherwise, it returns false
   - Invalid phone calls are marked with an exclamation point icon to indicate that the call is invalid
 - The number on the phone icon represents a real-time count of inboxed phone calls
   - After archiving/unarchiving a call, you should see the number update to reflect the change
