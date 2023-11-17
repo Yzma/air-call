@@ -10,9 +10,8 @@ import {
   faVoicemail,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { convertSeconds, getDateTime, getDateTimePeriod } from '@utils/utils'
 import { type PhoneCallCardType } from './types'
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Dialog,
   DialogClose,
@@ -22,34 +21,49 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
+import { cn, convertSeconds, getDateTime, getDateTimePeriod } from '@/lib/utils'
 import { Button } from '@components/ui/button'
 import useCallList from '@hooks/useCallList'
-import { useMutationState } from '@tanstack/react-query'
+import {
+  type Mutation,
+  useMutationState,
+  type DefaultError,
+} from '@tanstack/react-query'
 import { type PhoneCallResponseType } from '@/types'
+import { type ActivityIdParams } from '@/context/types'
 
 export const CallCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & PhoneCallCardType
 >(({ call, ...props }, ref) => {
   const callList = useCallList()
-  const variables = useMutationState<PhoneCallResponseType>({
+  const variables = useMutationState<string>({
     filters: { mutationKey: ['updateCall'], status: 'pending' },
-    select: (mutation) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      return mutation.state.variables.id
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    select: (
+      mutation: Mutation<PhoneCallResponseType, DefaultError, ActivityIdParams>
+    ) => {
+      return mutation.state.variables?.id
     },
   })
 
   // isLoading is true if the variables hook contains the ID of the CallCard, or if the CallCard is currently archived and the user requested to unarchive all Cards
-  const isLoading =
-    (variables.length > 0 &&
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      variables[0] === call.id) ||
-    (call.is_archived &&
-      callList.resetAllActivitiesMutation.status === 'pending')
+  const isLoading = useMemo(() => {
+    return (
+      (variables.length > 0 &&
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        variables[0] === call.id) ||
+      (call.is_archived &&
+        callList.resetAllActivitiesMutation.status === 'pending')
+    )
+  }, [
+    call.id,
+    call.is_archived,
+    callList.resetAllActivitiesMutation.status,
+    variables,
+  ])
 
   return (
     <>
