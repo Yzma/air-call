@@ -42,6 +42,7 @@ export type CallListContextType = {
     ResponseError,
     void
   >
+  isArchivingAllActivities: boolean
 }
 
 export const CallListContext = createContext<CallListContextType>(
