@@ -47,7 +47,6 @@ export default function Footer() {
   const nav = useNavigation()
 
   const currentActivityCount = useMemo(() => {
-    console.log('callList.state', callList.state)
     let count = callList.state.inboxStats.inboxTotal
 
     if (nav.excludeInvalidCalls) {
