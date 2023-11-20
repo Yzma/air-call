@@ -76,6 +76,9 @@ function reducer(state: ReducerType, action: Action): ReducerType {
         inboxStats: {
           ...state.inboxStats,
           inboxTotal: state.inboxStats.inboxTotal - 1,
+          errorTotal: activity!.isValid
+            ? state.inboxStats.errorTotal
+            : state.inboxStats.errorTotal - 1,
         },
       }
     }
@@ -90,6 +93,9 @@ function reducer(state: ReducerType, action: Action): ReducerType {
         inboxStats: {
           ...state.inboxStats,
           inboxTotal: state.inboxStats.inboxTotal + 1,
+          errorTotal: activity!.isValid
+            ? state.inboxStats.errorTotal
+            : state.inboxStats.errorTotal + 1,
         },
       }
     }
