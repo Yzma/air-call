@@ -51,8 +51,6 @@ type Action =
   | { type: 'SET_DATA'; data: ReducerType }
   | { type: 'ARCHIVE_ACTIVITY'; id: string }
   | { type: 'UNARCHIVE_ACTIVITY'; id: string }
-// | { type: 'ARCHIVE_ALL_ACTIVITIES'; activities: string[] }
-// | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
 
 type ReducerType = {
   dataMap: Map<string, PhoneCallType>
@@ -95,32 +93,6 @@ function reducer(state: ReducerType, action: Action): ReducerType {
         },
       }
     }
-
-    // TODO
-    // case 'ARCHIVE_ALL_ACTIVITIES': {
-    //   const copy = { ...state.dataMap }
-    //   copy.forEach((e) => {
-    //     e.is_archived = false
-    //   })
-    //   return {
-    //     ...state,
-    //     dataMap: copy,
-    //   }
-    // }
-
-    // // TODO
-    // case 'UNARCHIVE_ALL_ACTIVITIES': {
-    //   console.log('state', state)
-    //   const copy = { ...state.dataMap }
-    //   console.log('copy', copy)
-    //   // copy.forEach((e) => {
-    //   //   e.is_archived = false
-    //   // })
-    //   return {
-    //     ...state,
-    //     // dataMap: copy,
-    //   }
-    // }
   }
 }
 
@@ -354,14 +326,6 @@ export default function CallListContextProvider({
         },
       },
     })
-
-    // return {
-    //   data: Array.from(mappedData.dataMap.values()),
-    //   inboxStats: {
-    //     errorCount: mappedData.errorCount,
-    //     totalCount: mappedData.totalCount,
-    //   },
-    // }
   }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
 
   const callListContextValue = useMemo(

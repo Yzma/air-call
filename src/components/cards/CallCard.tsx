@@ -31,11 +31,11 @@ export const CallCard = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & PhoneCallCardType
 >(({ call, ...props }, ref) => {
   const callList = useCallList()
-  const [updating, setUpdating] = useState(false)
+  const [locallyUpdating, setLocallyUpdating] = useState(false)
 
   const updateCall = useCallback(async () => {
-    console.log('started for', call.id)
-    setUpdating(true)
+    // Remember to set locallyUpdating to true, and false when the query is finished
+    setLocallyUpdating(true)
     return callList.updateActivityByIdMutation
       .mutateAsync(
         {
@@ -67,18 +67,23 @@ export const CallCard = React.forwardRef<
           },
         }
       )
-      .finally(() => setUpdating(false))
+      .finally(() => setLocallyUpdating(false))
   }, [call.id, call.is_archived, callList])
 
-  // TODO: Redo comment
-  // isLoading is true if the variables hook contains the ID of the CallCard, or if the CallCard is currently archived and the user requested to unarchive all Cards
+  // isLoading is true if one of the two things are true:
+  // 1. If locallyUpdating is true - trigger when a user tries to archive/unarchive the call by clicking the button to do so (calling updateCall())
+  // 2. If the CallCard is archived AND resetAllActivitiesMutation is pending - This will happen when the user clicks the Archive/Unarchive all buttons
   const isLoading = useMemo(() => {
     return (
-      updating ||
+      locallyUpdating ||
       (call.is_archived &&
         callList.resetAllActivitiesMutation.status === 'pending')
     )
-  }, [call.is_archived, callList.resetAllActivitiesMutation.status, updating])
+  }, [
+    call.is_archived,
+    callList.resetAllActivitiesMutation.status,
+    locallyUpdating,
+  ])
 
   return (
     <>
