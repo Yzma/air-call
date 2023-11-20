@@ -171,7 +171,7 @@ export default function CallListContextProvider({
           description: `Check the console for more information.`,
         })
       })
-  }, [getAllActivitiesQuery.data, updateActivityByIdMutation])
+  }, [getAllActivitiesQuery.data, queryClient, updateActivityByIdMutation])
 
   const unarchiveAllCalls = useCallback(() => {
     resetAllActivitiesMutation.mutateAsync()
