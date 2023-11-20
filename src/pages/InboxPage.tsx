@@ -1,7 +1,10 @@
 import useCallList from '@hooks/useCallList'
 import { Fragment, useMemo } from 'react'
 import { CallSeparator } from '@components/ui/call-separator'
-import { UnarchiveAllCard } from '@components/cards/ArchiveCards'
+import {
+  ArchiveAllCard,
+  UnarchiveAllCard,
+} from '@components/cards/ArchiveCards'
 import { CallCard } from '@components/cards/CallCard'
 import { useNavigation } from '@hooks/useNavigation'
 import LoadingCards from '@components/LoadingCards'
@@ -23,7 +26,11 @@ export default function InboxPage() {
 
     return (
       <>
-        {nav.headerOption === 'archived' && <UnarchiveAllCard />}
+        {nav.headerOption === 'inbox' ? (
+          <ArchiveAllCard />
+        ) : (
+          <UnarchiveAllCard />
+        )}
         {call.allActivitiesData.data.map((e) => {
           const calls = e.calls.filter((e) => {
             return (

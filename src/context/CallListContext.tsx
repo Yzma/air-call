@@ -24,8 +24,9 @@ import { toast } from '@components/ui/use-toast'
 
 export type CallListContextType = {
   unarchiveAllCalls: () => void
-  unarchiveCall: (call: PhoneCallType) => void
-  archiveCall: (call: PhoneCallType) => void
+  archiveAllCalls: () => void
+  unarchiveCall: (callId: string) => void
+  archiveCall: (callId: string) => void
   getAllActivitiesQuery: UseQueryResult<PhoneCallResponseType[], ResponseError>
   updateActivityByIdMutation: UseMutationResult<
     PhoneCallResponseType,
@@ -82,16 +83,7 @@ export default function CallListContextProvider({
       )
       return data as PhoneCallResponseType
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
-    onError(_, variables) {
-      return toast({
-        variant: 'destructive',
-        title: 'Error archiving call',
-        description: `Could not ${
-          variables.is_archived ? 'archive' : 'unarchive'
-        } activity.`,
-      })
-    },
+    retry: false,
   })
 
   const resetAllActivitiesMutation = useMutation<
@@ -115,14 +107,10 @@ export default function CallListContextProvider({
     },
   })
 
-  const unarchiveAllCalls = useCallback(() => {
-    resetAllActivitiesMutation.mutateAsync()
-  }, [resetAllActivitiesMutation])
-
   const unarchiveCall = useCallback(
-    (call: PhoneCallType) => {
+    (id: string) => {
       updateActivityByIdMutation.mutateAsync({
-        id: call.id,
+        id,
         is_archived: false,
       })
     },
@@ -130,11 +118,66 @@ export default function CallListContextProvider({
   )
 
   const archiveCall = useCallback(
-    (call: PhoneCallType) => {
-      updateActivityByIdMutation.mutateAsync({ id: call.id, is_archived: true })
+    (id: string) => {
+      updateActivityByIdMutation.mutate({ id, is_archived: true })
     },
     [updateActivityByIdMutation]
   )
+
+  const archiveAllCalls = useCallback(async () => {
+    // Sanity check, make sure we can actually archive some calls
+    if (
+      !getAllActivitiesQuery.data ||
+      getAllActivitiesQuery.data.length === 0
+    ) {
+      return
+    }
+
+    // Batch mutations into an array of promises
+    const promises = getAllActivitiesQuery.data
+      .filter((e) => !e.is_archived)
+      .map((e) =>
+        updateActivityByIdMutation.mutateAsync({
+          id: e.id,
+          is_archived: true,
+        })
+      )
+
+    // Call batch mutations - Once settled, display an error if any activities could not be archived.
+    // In this case, there will always be 7 activities that will fail as the invalid activities cannot be updated.
+    Promise.allSettled(promises)
+      .then((values) => {
+        // Invalidate all calls - refetch all activities
+        queryClient.invalidateQueries({ queryKey: ['calls'] })
+
+        const errorResponses = values.filter((e) => e.status === 'rejected')
+        if (errorResponses.length > 0) {
+          return toast({
+            variant: 'destructive',
+            title: 'Error archiving call',
+            description: `Could not archive ${errorResponses.length} activities.`,
+          })
+        }
+        // Again, in this case, this should never be called unless the backend updates invalid calls.
+        return toast({
+          variant: 'default',
+          title: 'Archived Activities',
+          description: `All activities have been archived.`,
+        })
+      })
+      .catch((error) => {
+        console.error('Error archiving activities: ', error)
+        return toast({
+          variant: 'destructive',
+          title: 'Error archiving activities',
+          description: `Check the console for more information.`,
+        })
+      })
+  }, [getAllActivitiesQuery.data, queryClient, updateActivityByIdMutation])
+
+  const unarchiveAllCalls = useCallback(() => {
+    resetAllActivitiesMutation.mutateAsync()
+  }, [resetAllActivitiesMutation])
 
   const transformPhoneCall = useCallback((object: PhoneCallResponseType) => {
     const createdAtDate = new Date(object.created_at)
@@ -216,6 +259,7 @@ export default function CallListContextProvider({
 
   const callListContextValue = useMemo(
     () => ({
+      archiveAllCalls,
       unarchiveAllCalls,
       unarchiveCall,
       archiveCall,
@@ -225,6 +269,7 @@ export default function CallListContextProvider({
       allActivitiesData,
     }),
     [
+      archiveAllCalls,
       unarchiveAllCalls,
       unarchiveCall,
       archiveCall,
