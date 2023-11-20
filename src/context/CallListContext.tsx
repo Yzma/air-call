@@ -13,6 +13,7 @@ import {
   useCallback,
   useReducer,
   useEffect,
+  useState,
 } from 'react'
 import {
   type ResponseError,
@@ -117,6 +118,7 @@ export default function CallListContextProvider({
   children,
 }: PropsWithChildren) {
   const queryClient = useQueryClient()
+  const [isArchivingAllActivities, setArchivingAllActivities] = useState(false)
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
   const getAllActivitiesQuery = useQuery<
@@ -150,6 +152,19 @@ export default function CallListContextProvider({
       )
       return data as PhoneCallResponseType
     },
+    onSuccess: (_, variables) => {
+      if (variables.is_archived) {
+        dispatch({
+          type: 'ARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      } else {
+        dispatch({
+          type: 'UNARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      }
+    },
   })
 
   const resetAllActivitiesMutation = useMutation<
@@ -171,24 +186,26 @@ export default function CallListContextProvider({
     },
   })
 
-  const unarchiveAllCalls = useCallback(() => {
-    resetAllActivitiesMutation.mutateAsync()
-  }, [resetAllActivitiesMutation])
+  const unarchiveAllCalls = useCallback(
+    () => resetAllActivitiesMutation.mutateAsync(),
+    [resetAllActivitiesMutation]
+  )
 
   const unarchiveCall = useCallback(
-    (call: PhoneCallType) => {
+    (call: PhoneCallType) =>
       updateActivityByIdMutation.mutateAsync({
         id: call.id,
         is_archived: false,
-      })
-    },
+      }),
     [updateActivityByIdMutation]
   )
 
   const archiveCall = useCallback(
-    (call: PhoneCallType) => {
-      updateActivityByIdMutation.mutateAsync({ id: call.id, is_archived: true })
-    },
+    (call: PhoneCallType) =>
+      updateActivityByIdMutation.mutateAsync({
+        id: call.id,
+        is_archived: true,
+      }),
     [updateActivityByIdMutation]
   )
 
@@ -205,21 +222,18 @@ export default function CallListContextProvider({
     const promises = getAllActivitiesQuery.data
       .filter((e) => !e.is_archived)
       .map((e) =>
-        updateActivityByIdMutation
-          .mutateAsync({
-            id: e.id,
-            is_archived: true,
-          })
-          .then(() => {
-            return { id: e.id, is_archived: true }
-          })
+        updateActivityByIdMutation.mutateAsync({
+          id: e.id,
+          is_archived: true,
+        })
       )
+
+    setArchivingAllActivities(true)
 
     // Call batch mutations - Once settled, display an error if any activities could not be archived.
     // In this case, there will always be 7 activities that will fail as the invalid activities cannot be updated.
     Promise.allSettled(promises)
       .then((values) => {
-        queryClient.invalidateQueries({ queryKey: ['calls'] })
         const errorResponses = values.filter((e) => e.status === 'rejected')
         if (errorResponses.length > 0) {
           return toast({
@@ -243,7 +257,10 @@ export default function CallListContextProvider({
           description: `Check the console for more information.`,
         })
       })
-  }, [getAllActivitiesQuery.data, queryClient, updateActivityByIdMutation])
+      .finally(() => {
+        setArchivingAllActivities(false)
+      })
+  }, [getAllActivitiesQuery.data, updateActivityByIdMutation])
 
   const transformPhoneCall = useCallback((object: PhoneCallResponseType) => {
     const createdAtDate = new Date(object.created_at)
@@ -344,6 +361,7 @@ export default function CallListContextProvider({
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
 
+      isArchivingAllActivities,
       dispatch,
       state,
     }),
@@ -356,6 +374,7 @@ export default function CallListContextProvider({
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
 
+      isArchivingAllActivities,
       dispatch,
       state,
     ]

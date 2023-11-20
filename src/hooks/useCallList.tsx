@@ -15,6 +15,7 @@ export default function useCallList() {
     archiveCall: context.archiveCall,
     unarchiveAllCalls: context.unarchiveAllCalls,
     unarchiveCall: context.unarchiveCall,
+    isArchivingAllActivities: context.isArchivingAllActivities,
     getAllActivitiesQuery: context.getAllActivitiesQuery,
     updateActivityByIdMutation: context.updateActivityByIdMutation,
     resetAllActivitiesMutation: context.resetAllActivitiesMutation,

@@ -52,35 +52,25 @@ export const CallCard = React.forwardRef<
               } activity.`,
             })
           },
-          onSuccess: (_, variables) => {
-            if (variables.is_archived) {
-              callList.dispatch({
-                type: 'ARCHIVE_ACTIVITY',
-                id: variables.id,
-              })
-            } else {
-              callList.dispatch({
-                type: 'UNARCHIVE_ACTIVITY',
-                id: variables.id,
-              })
-            }
-          },
         }
       )
       .finally(() => setLocallyUpdating(false))
   }, [call.id, call.is_archived, callList])
 
-  // isLoading is true if one of the two things are true:
+  // isLoading is true if one of the three things are true:
   // 1. If locallyUpdating is true - trigger when a user tries to archive/unarchive the call by clicking the button to do so (calling updateCall())
-  // 2. If the CallCard is archived AND resetAllActivitiesMutation is pending - This will happen when the user clicks the Archive/Unarchive all buttons
+  // 2. If the CallCard is not archived AND the user requested to archive all cards - This will happen when the user clicks the archive all button
+  // 3. If the CallCard is archived AND resetAllActivitiesMutation is pending - This will happen when the user clicks the unarchive all button
   const isLoading = useMemo(() => {
     return (
       locallyUpdating ||
+      (!call.is_archived && callList.isArchivingAllActivities) ||
       (call.is_archived &&
         callList.resetAllActivitiesMutation.status === 'pending')
     )
   }, [
     call.is_archived,
+    callList.isArchivingAllActivities,
     callList.resetAllActivitiesMutation.status,
     locallyUpdating,
   ])
