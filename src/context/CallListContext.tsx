@@ -19,7 +19,6 @@ import {
   type ActivityIdParams,
   type PhoneCallReturn,
   type PhoneCallType,
-  type CachedActivityData,
 } from './types'
 import { type PhoneCallResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
@@ -27,6 +26,7 @@ import { toast } from '@components/ui/use-toast'
 export type CallListContextType = {
   dispatch: React.Dispatch<Action>
   state: ReducerType
+  archiveAllCalls: () => void
   unarchiveAllCalls: () => void
   unarchiveCall: (call: PhoneCallType) => void
   archiveCall: (call: PhoneCallType) => void
@@ -41,7 +41,6 @@ export type CallListContextType = {
     ResponseError,
     void
   >
-  allActivitiesData: CachedActivityData
 }
 
 export const CallListContext = createContext<CallListContextType>(
@@ -52,8 +51,8 @@ type Action =
   | { type: 'SET_DATA'; data: ReducerType }
   | { type: 'ARCHIVE_ACTIVITY'; id: string }
   | { type: 'UNARCHIVE_ACTIVITY'; id: string }
-  | { type: 'ARCHIVE_ALL_ACTIVITIES'; activities: string[] }
-  | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
+// | { type: 'ARCHIVE_ALL_ACTIVITIES'; activities: string[] }
+// | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
 
 type ReducerType = {
   dataMap: Map<string, PhoneCallType>
@@ -98,16 +97,16 @@ function reducer(state: ReducerType, action: Action): ReducerType {
     }
 
     // TODO
-    case 'ARCHIVE_ALL_ACTIVITIES': {
-      const copy = { ...state.dataMap }
-      copy.forEach((e) => {
-        e.is_archived = false
-      })
-      return {
-        ...state,
-        dataMap: copy,
-      }
-    }
+    // case 'ARCHIVE_ALL_ACTIVITIES': {
+    //   const copy = { ...state.dataMap }
+    //   copy.forEach((e) => {
+    //     e.is_archived = false
+    //   })
+    //   return {
+    //     ...state,
+    //     dataMap: copy,
+    //   }
+    // }
 
     // // TODO
     // case 'UNARCHIVE_ALL_ACTIVITIES': {
@@ -173,30 +172,6 @@ export default function CallListContextProvider({
       )
       return data as PhoneCallResponseType
     },
-
-    // TODO: Remove this - this has to be split up since we have to use this to archive all
-    onSuccess: (_, variables) => {
-      if (variables.is_archived) {
-        dispatch({
-          type: 'ARCHIVE_ACTIVITY',
-          id: variables.id,
-        })
-      } else {
-        dispatch({
-          type: 'UNARCHIVE_ACTIVITY',
-          id: variables.id,
-        })
-      }
-    },
-    onError(_, variables) {
-      return toast({
-        variant: 'destructive',
-        title: 'Error archiving call',
-        description: `Could not ${
-          variables.is_archived ? 'archive' : 'unarchive'
-        } activity.`,
-      })
-    },
   })
 
   const resetAllActivitiesMutation = useMutation<
@@ -239,7 +214,7 @@ export default function CallListContextProvider({
     [updateActivityByIdMutation]
   )
 
-  const archiveAllCalls = useCallback(async () => {
+  const archiveAllCalls = useCallback(() => {
     // Sanity check, make sure we can actually archive some calls
     if (
       !getAllActivitiesQuery.data ||
@@ -333,6 +308,7 @@ export default function CallListContextProvider({
       return
     }
 
+    console.log('is group by running?')
     const mappedData = phoneCalls.reduceRight(
       (accumulator, entry) => {
         const phoneCall = transformPhoneCall(entry)
@@ -400,8 +376,6 @@ export default function CallListContextProvider({
 
       dispatch,
       state,
-      transformPhoneCall,
-      hashPhoneCallKey,
     }),
     [
       archiveAllCalls,
@@ -414,8 +388,6 @@ export default function CallListContextProvider({
 
       dispatch,
       state,
-      transformPhoneCall,
-      hashPhoneCallKey,
     ]
   )
   return (

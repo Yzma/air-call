@@ -11,7 +11,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { type PhoneCallCardType } from './types'
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogClose,
@@ -24,43 +24,61 @@ import {
 import { cn, convertSeconds, getDateTime, getDateTimePeriod } from '@/lib/utils'
 import { Button } from '@components/ui/button'
 import useCallList from '@hooks/useCallList'
-import {
-  type Mutation,
-  useMutationState,
-  type DefaultError,
-} from '@tanstack/react-query'
-import { type PhoneCallResponseType } from '@/types'
-import { type ActivityIdParams } from '@/context/types'
+import { toast } from '@components/ui/use-toast'
 
 export const CallCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & PhoneCallCardType
 >(({ call, ...props }, ref) => {
   const callList = useCallList()
-  const variables = useMutationState<string>({
-    filters: { mutationKey: ['updateCall'], status: 'pending' },
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    select: (
-      mutation: Mutation<PhoneCallResponseType, DefaultError, ActivityIdParams>
-    ) => {
-      return mutation.state.variables?.id
-    },
-  })
+  const [updating, setUpdating] = useState(false)
 
+  const updateCall = useCallback(async () => {
+    console.log('started for', call.id)
+    setUpdating(true)
+    return callList.updateActivityByIdMutation
+      .mutateAsync(
+        {
+          id: call.id,
+          is_archived: !call.is_archived,
+        },
+        {
+          onError(_, variables) {
+            return toast({
+              variant: 'destructive',
+              title: 'Error archiving call',
+              description: `Could not ${
+                variables.is_archived ? 'archive' : 'unarchive'
+              } activity.`,
+            })
+          },
+          onSuccess: (_, variables) => {
+            if (variables.is_archived) {
+              callList.dispatch({
+                type: 'ARCHIVE_ACTIVITY',
+                id: variables.id,
+              })
+            } else {
+              callList.dispatch({
+                type: 'UNARCHIVE_ACTIVITY',
+                id: variables.id,
+              })
+            }
+          },
+        }
+      )
+      .finally(() => setUpdating(false))
+  }, [call.id, call.is_archived, callList])
+
+  // TODO: Redo comment
   // isLoading is true if the variables hook contains the ID of the CallCard, or if the CallCard is currently archived and the user requested to unarchive all Cards
   const isLoading = useMemo(() => {
     return (
-      (variables.length > 0 && variables.includes(call.id)) ||
+      updating ||
       (call.is_archived &&
         callList.resetAllActivitiesMutation.status === 'pending')
     )
-  }, [
-    call.id,
-    call.is_archived,
-    callList.resetAllActivitiesMutation.status,
-    variables,
-  ])
+  }, [call.is_archived, callList.resetAllActivitiesMutation.status, updating])
 
   return (
     <>
@@ -134,13 +152,7 @@ export const CallCard = React.forwardRef<
             <div className="flex items-center justify-end gap-x-2 text-gray-400">
               <div
                 className="group flex h-7 w-7 cursor-pointer items-center justify-center rounded-full hover:bg-gray-300"
-                onClick={() => {
-                  if (call.is_archived) {
-                    callList.unarchiveCall(call)
-                  } else {
-                    callList.archiveCall(call)
-                  }
-                }}
+                onClick={() => updateCall()}
               >
                 {call.is_archived ? (
                   <FontAwesomeIcon
@@ -196,23 +208,9 @@ export const CallCard = React.forwardRef<
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                {call.is_archived ? (
-                  <Button
-                    size={'sm'}
-                    type="submit"
-                    onClick={() => callList.unarchiveCall(call)}
-                  >
-                    Unarchive
-                  </Button>
-                ) : (
-                  <Button
-                    size={'sm'}
-                    type="submit"
-                    onClick={() => callList.archiveCall(call)}
-                  >
-                    Archive
-                  </Button>
-                )}
+                <Button size={'sm'} type="submit" onClick={() => updateCall()}>
+                  {call.is_archived ? <>Unarchive</> : <>Archive</>}
+                </Button>
               </DialogClose>
             </DialogFooter>
           </div>
