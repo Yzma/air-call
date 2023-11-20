@@ -11,6 +11,7 @@ import {
   useMemo,
   type PropsWithChildren,
   useCallback,
+  useReducer,
 } from 'react'
 import {
   type ResponseError,
@@ -44,10 +45,50 @@ export const CallListContext = createContext<CallListContextType>(
   {} as CallListContextType
 )
 
+type Action =
+  | { type: 'SET_DATA'; data: ReducerType }
+  | { type: 'UPDATE_ACTIVITY'; id: string; activity: PhoneCallType }
+  | { type: 'BATCH_UPDATE_ACTIVITY'; id: string; activities: PhoneCallType[] }
+
+type ReducerType = {
+  dataMap: Map<string, PhoneCallType>
+  inboxStats: {
+    inboxTotal: number
+    errorTotal: number
+  }
+}
+
+function reducer(state: ReducerType, action: Action): ReducerType {
+  switch (action.type) {
+    case 'SET_DATA':
+      return action.data
+    case 'UPDATE_ACTIVITY':
+      return {
+        ...state,
+        dataMap: state.dataMap.set(action.id, action.activity),
+      }
+    // TODO
+    case 'BATCH_UPDATE_ACTIVITY':
+      return {
+        ...state,
+      }
+  }
+}
+
+const INITIAL_STATE_DATA: ReducerType = {
+  dataMap: new Map<string, PhoneCallType>(),
+  inboxStats: {
+    inboxTotal: 0,
+    errorTotal: 0,
+  },
+}
+
 export default function CallListContextProvider({
   children,
 }: PropsWithChildren) {
   const queryClient = useQueryClient()
+
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
   const getAllActivitiesQuery = useQuery<
     PhoneCallResponseType[],
@@ -82,7 +123,20 @@ export default function CallListContextProvider({
       )
       return data as PhoneCallResponseType
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
+    onSuccess: (_, variables) => {
+      //queryClient.invalidateQueries({ queryKey: ['calls'] })
+      console.log('variables: ', variables)
+
+      const old = state.dataMap.get(variables.id)
+      old!.is_archived = variables.is_archived
+
+      console.log('SUCCESS')
+      dispatch({
+        type: 'UPDATE_ACTIVITY',
+        id: old.id,
+        activity: old!,
+      })
+    },
     onError(_, variables) {
       return toast({
         variant: 'destructive',
@@ -200,10 +254,28 @@ export default function CallListContextProvider({
           accumulator.map.set(dateKey, { time: dateKey, calls: [phoneCall] })
         }
 
+        accumulator.dataMap.set(phoneCall.id, phoneCall)
+
         return accumulator
       },
-      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, totalCount: 0 }
+      {
+        map: new Map<string, PhoneCallReturn>(),
+        dataMap: new Map<string, PhoneCallType>(),
+        errorCount: 0,
+        totalCount: 0,
+      }
     )
+
+    dispatch({
+      type: 'SET_DATA',
+      data: {
+        dataMap: mappedData.dataMap,
+        inboxStats: {
+          errorTotal: mappedData.errorCount,
+          inboxTotal: mappedData.totalCount,
+        },
+      },
+    })
 
     return {
       data: Array.from(mappedData.map.values()),
@@ -223,6 +295,11 @@ export default function CallListContextProvider({
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
       allActivitiesData,
+
+      dispatch,
+      state,
+      transformPhoneCall,
+      hashPhoneCallKey,
     }),
     [
       unarchiveAllCalls,
@@ -232,6 +309,11 @@ export default function CallListContextProvider({
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
       allActivitiesData,
+
+      dispatch,
+      state,
+      transformPhoneCall,
+      hashPhoneCallKey,
     ]
   )
   return (

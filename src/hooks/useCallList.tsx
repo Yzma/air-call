@@ -18,5 +18,10 @@ export default function useCallList() {
     getAllActivitiesQuery: context.getAllActivitiesQuery,
     updateActivityByIdMutation: context.updateActivityByIdMutation,
     resetAllActivitiesMutation: context.resetAllActivitiesMutation,
+
+    transformPhoneCall: context.transformPhoneCall,
+    hashPhoneCallKey: context.hashPhoneCallKey,
+    state: context.state,
+    dispatch: context.dispatch,
   }
 }
