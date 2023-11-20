@@ -4,7 +4,6 @@ import {
   useMutation,
   type UseQueryResult,
   type UseMutationResult,
-  useQueryClient,
 } from '@tanstack/react-query'
 import {
   createContext,
@@ -24,6 +23,8 @@ import { type PhoneCallResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
 
 export type CallListContextType = {
+  dispatch: React.Dispatch<Action>
+  state: ReducerType
   unarchiveAllCalls: () => void
   unarchiveCall: (call: PhoneCallType) => void
   archiveCall: (call: PhoneCallType) => void
@@ -47,8 +48,9 @@ export const CallListContext = createContext<CallListContextType>(
 
 type Action =
   | { type: 'SET_DATA'; data: ReducerType }
-  | { type: 'UPDATE_ACTIVITY'; id: string; activity: PhoneCallType }
-  | { type: 'BATCH_UPDATE_ACTIVITY'; id: string; activities: PhoneCallType[] }
+  | { type: 'ARCHIVE_ACTIVITY'; id: string }
+  | { type: 'UNARCHIVE_ACTIVITY'; id: string }
+  | { type: 'ARCHIVE_ALL_ACTIVITIES'; id: string; activities: PhoneCallType[] }
 
 type ReducerType = {
   dataMap: Map<string, PhoneCallType>
@@ -62,13 +64,38 @@ function reducer(state: ReducerType, action: Action): ReducerType {
   switch (action.type) {
     case 'SET_DATA':
       return action.data
-    case 'UPDATE_ACTIVITY':
+
+    // TODO
+    case 'ARCHIVE_ACTIVITY': {
+      const activity = state.dataMap.get(action.id)
+      activity!.is_archived = true
+
       return {
         ...state,
-        dataMap: state.dataMap.set(action.id, action.activity),
+        dataMap: state.dataMap.set(action.id, activity!),
+        inboxStats: {
+          ...state.inboxStats,
+          inboxTotal: state.inboxStats.inboxTotal - 1,
+        },
       }
+    }
+
+    case 'UNARCHIVE_ACTIVITY': {
+      const activity = state.dataMap.get(action.id)
+      activity!.is_archived = false
+
+      return {
+        ...state,
+        dataMap: state.dataMap.set(action.id, activity!),
+        inboxStats: {
+          ...state.inboxStats,
+          inboxTotal: state.inboxStats.inboxTotal + 1,
+        },
+      }
+    }
+
     // TODO
-    case 'BATCH_UPDATE_ACTIVITY':
+    case 'ARCHIVE_ALL_ACTIVITIES':
       return {
         ...state,
       }
@@ -83,11 +110,11 @@ const INITIAL_STATE_DATA: ReducerType = {
   },
 }
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND
+
 export default function CallListContextProvider({
   children,
 }: PropsWithChildren) {
-  const queryClient = useQueryClient()
-
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
   const getAllActivitiesQuery = useQuery<
@@ -96,9 +123,7 @@ export default function CallListContextProvider({
   >({
     queryKey: ['calls'],
     queryFn: async () => {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_BACKEND}/activities`
-      )
+      const { data } = await axios.get(`${BACKEND_URL}/activities`)
       return data as PhoneCallResponseType[]
     },
     refetchOnMount: false,
@@ -116,7 +141,7 @@ export default function CallListContextProvider({
     mutationKey: ['updateCall'],
     mutationFn: async (variables) => {
       const { data } = await axios.patch(
-        `${import.meta.env.VITE_BACKEND}/activities/${variables.id}`,
+        `${BACKEND_URL}/activities/${variables.id}`,
         {
           is_archived: variables.is_archived,
         }
@@ -124,18 +149,17 @@ export default function CallListContextProvider({
       return data as PhoneCallResponseType
     },
     onSuccess: (_, variables) => {
-      //queryClient.invalidateQueries({ queryKey: ['calls'] })
-      console.log('variables: ', variables)
-
-      const old = state.dataMap.get(variables.id)
-      old!.is_archived = variables.is_archived
-
-      console.log('SUCCESS')
-      dispatch({
-        type: 'UPDATE_ACTIVITY',
-        id: old.id,
-        activity: old!,
-      })
+      if (variables.is_archived) {
+        dispatch({
+          type: 'ARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      } else {
+        dispatch({
+          type: 'UNARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      }
     },
     onError(_, variables) {
       return toast({
@@ -154,12 +178,13 @@ export default function CallListContextProvider({
   >({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
-      const { data } = await axios.patch(
-        `${import.meta.env.VITE_BACKEND}/reset`
-      )
+      const { data } = await axios.patch(`${BACKEND_URL}/reset`)
       return data as PhoneCallResponseType[]
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
+    onSuccess: () => {
+      // queryClient.invalidateQueries({ queryKey: ['calls'] })
+      dispatch({ type: 'ARCHIVE_ALL_ACTIVITIES' })
+    },
     onError() {
       return toast({
         variant: 'destructive',

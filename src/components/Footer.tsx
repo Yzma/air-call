@@ -41,25 +41,21 @@ const FooterIcon = ({
     </div>
   )
 }
-FooterIcon.displayName = 'FooterIcon'
 
 export default function Footer() {
   const callList = useCallList()
   const nav = useNavigation()
 
   const currentActivityCount = useMemo(() => {
-    let count = callList.allActivitiesData.inboxStats.totalCount
+    console.log('callList.state', callList.state)
+    let count = callList.state.inboxStats.inboxTotal
 
     if (nav.excludeInvalidCalls) {
-      count -= callList.allActivitiesData.inboxStats.errorCount
+      count -= callList.state.inboxStats.errorTotal
     }
 
     return count
-  }, [
-    callList.allActivitiesData.inboxStats.errorCount,
-    callList.allActivitiesData.inboxStats.totalCount,
-    nav.excludeInvalidCalls,
-  ])
+  }, [callList.state, nav.excludeInvalidCalls])
 
   return (
     <footer className="relative flex h-12 items-center justify-between rounded-b-xl border-t border-gray-100 bg-white px-6 shadow-[rgba(0,_0,_0,_0.05)_0px_-1px_4px_0px]">
