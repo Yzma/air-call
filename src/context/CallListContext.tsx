@@ -147,7 +147,9 @@ export default function CallListContextProvider({
     // In this case, there will always be 7 activities that will fail as the invalid activities cannot be updated.
     Promise.allSettled(promises)
       .then((values) => {
+        // Invalidate all calls - refetch all activities
         queryClient.invalidateQueries({ queryKey: ['calls'] })
+
         const errorResponses = values.filter((e) => e.status === 'rejected')
         if (errorResponses.length > 0) {
           return toast({
