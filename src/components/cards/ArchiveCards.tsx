@@ -19,7 +19,7 @@ export const UnarchiveAllCard = React.forwardRef<
     <ArchiveCard
       ref={ref}
       className={cn(className)}
-      onClick={() => callList.unarchiveAllCalls()}
+      onClick={() => callList.unarchiveAllActivities()}
       {...props}
     >
       <ArchiveCardContent>
@@ -31,8 +31,6 @@ export const UnarchiveAllCard = React.forwardRef<
 })
 UnarchiveAllCard.displayName = 'UnarchiveAllCard'
 
-// Unused card to archive all calls
-
 export const ArchiveAllCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -42,7 +40,7 @@ export const ArchiveAllCard = React.forwardRef<
     <ArchiveCard
       ref={ref}
       className={cn(className)}
-      onClick={() => callList.archiveAllCalls()}
+      onClick={() => callList.archiveAllActivities()}
       {...props}
     >
       <ArchiveCardContent>

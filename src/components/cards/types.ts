@@ -1,5 +1,5 @@
-import { type PhoneCallType } from '@/context/types'
+import { type ActivityType } from '@/context/types'
 
-export type PhoneCallCardType = {
-  call: PhoneCallType
+export type ActivityCardType = {
+  activity: ActivityType
 }

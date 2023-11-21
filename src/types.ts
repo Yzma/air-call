@@ -1,4 +1,4 @@
-export type PhoneCallResponseType = {
+export type ActivityResponseType = {
   id: string
   created_at: string
   is_archived: boolean

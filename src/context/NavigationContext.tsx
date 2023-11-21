@@ -8,8 +8,8 @@ import {
 } from 'react'
 
 export type NavigationContextType = {
-  excludeInvalidCalls: boolean
-  setExcludeInvalidCalls: Dispatch<SetStateAction<boolean>>
+  excludeInvalidActivities: boolean
+  setExcludeInvalidActivities: Dispatch<SetStateAction<boolean>>
   headerOption: 'inbox' | 'archived'
   setHeaderOption: Dispatch<
     SetStateAction<NavigationContextType['headerOption']>
@@ -19,7 +19,7 @@ export type NavigationContextType = {
 }
 
 export type NavigationContextParamsType = {
-  excludeInvalidCalls: boolean
+  excludeInvalidActivities: boolean
 }
 
 export const NavigationContext = createContext<NavigationContextType>(
@@ -28,9 +28,9 @@ export const NavigationContext = createContext<NavigationContextType>(
 
 export default function NavigationContextProvider({
   children,
-  excludeInvalidCalls: excludeInvalidCallsValue,
+  excludeInvalidActivities: excludeInvalidCallsValue,
 }: PropsWithChildren<NavigationContextParamsType>) {
-  const [excludeInvalidCalls, setExcludeInvalidCalls] = useState(
+  const [excludeInvalidActivities, setExcludeInvalidActivities] = useState(
     excludeInvalidCallsValue
   )
   const [page, setPage] = useState<NavigationContextType['page']>('call-list')
@@ -38,14 +38,14 @@ export default function NavigationContextProvider({
     useState<NavigationContextType['headerOption']>('inbox')
   const navigationContextValue = useMemo(
     () => ({
-      excludeInvalidCalls,
-      setExcludeInvalidCalls,
+      excludeInvalidActivities,
+      setExcludeInvalidActivities,
       page,
       setPage,
       headerOption,
       setHeaderOption,
     }),
-    [excludeInvalidCalls, headerOption, page]
+    [excludeInvalidActivities, headerOption, page]
   )
   return (
     <NavigationContext.Provider value={navigationContextValue}>

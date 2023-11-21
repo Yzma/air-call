@@ -4,153 +4,241 @@ import {
   useMutation,
   type UseQueryResult,
   type UseMutationResult,
-  useQueryClient,
 } from '@tanstack/react-query'
 import {
   createContext,
   useMemo,
   type PropsWithChildren,
   useCallback,
+  useReducer,
+  useEffect,
+  useState,
 } from 'react'
 import {
   type ResponseError,
   type ActivityIdParams,
-  type PhoneCallReturn,
-  type PhoneCallType,
-  type CachedActivityData,
+  type GroupedActivities,
+  type ActivityType,
 } from './types'
-import { type PhoneCallResponseType } from '@/types'
+import { type ActivityResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
 
 export type CallListContextType = {
-  unarchiveAllCalls: () => void
-  archiveAllCalls: () => void
-  unarchiveCall: (callId: string) => void
-  archiveCall: (callId: string) => void
-  getAllActivitiesQuery: UseQueryResult<PhoneCallResponseType[], ResponseError>
+  dispatch: React.Dispatch<Action>
+  state: ReducerType
+  archiveAllActivities: () => void
+  unarchiveAllActivities: () => void
+  getAllActivitiesQuery: UseQueryResult<ActivityResponseType[], ResponseError>
   updateActivityByIdMutation: UseMutationResult<
-    PhoneCallResponseType,
+    unknown,
     ResponseError,
     ActivityIdParams
   >
   resetAllActivitiesMutation: UseMutationResult<
-    PhoneCallResponseType[],
+    ActivityResponseType[],
     ResponseError,
     void
   >
-  allActivitiesData: CachedActivityData
+  isArchivingAllActivities: boolean
 }
 
 export const CallListContext = createContext<CallListContextType>(
   {} as CallListContextType
 )
 
+type Action =
+  | { type: 'SET_DATA'; data: ReducerType }
+  | { type: 'ARCHIVE_ACTIVITY'; id: string }
+  | { type: 'UNARCHIVE_ACTIVITY'; id: string }
+  | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
+
+/**
+ * dataMap: The actual cache of all the activities
+ * groupedMap: An array of all the activities grouped by their date (for rendering)
+ * inboxStats:
+ *   inboxTotal: The amount of unarchived activities (Used by the footer to display the current count)
+ *   errorTotal: The amount of invalid activities (Also used by the footer to display the current count)
+ */
+type ReducerType = {
+  dataMap: Map<string, ActivityType>
+  groupedMap: GroupedActivities[]
+  inboxStats: {
+    inboxTotal: number
+    errorTotal: number
+  }
+}
+
+function reducer(state: ReducerType, action: Action): ReducerType {
+  switch (action.type) {
+    case 'SET_DATA':
+      return action.data
+
+    case 'ARCHIVE_ACTIVITY': {
+      const activity = state.dataMap.get(action.id)
+      activity!.is_archived = true
+
+      return {
+        ...state,
+        dataMap: state.dataMap.set(action.id, activity!),
+        inboxStats: {
+          ...state.inboxStats,
+          inboxTotal: state.inboxStats.inboxTotal - 1,
+          errorTotal: activity!.isValid
+            ? state.inboxStats.errorTotal
+            : state.inboxStats.errorTotal - 1,
+        },
+      }
+    }
+
+    case 'UNARCHIVE_ACTIVITY': {
+      const activity = state.dataMap.get(action.id)
+      activity!.is_archived = false
+
+      return {
+        ...state,
+        dataMap: state.dataMap.set(action.id, activity!),
+        inboxStats: {
+          ...state.inboxStats,
+          inboxTotal: state.inboxStats.inboxTotal + 1,
+          errorTotal: activity!.isValid
+            ? state.inboxStats.errorTotal
+            : state.inboxStats.errorTotal + 1,
+        },
+      }
+    }
+
+    case 'UNARCHIVE_ALL_ACTIVITIES': {
+      const newDataMap = new Map(state.dataMap)
+      newDataMap.forEach((e) => {
+        e.is_archived = false
+      })
+
+      return {
+        ...state,
+        dataMap: newDataMap,
+        inboxStats: {
+          ...state.inboxStats,
+          inboxTotal: newDataMap.size,
+        },
+      }
+    }
+  }
+}
+
+const INITIAL_STATE_DATA: ReducerType = {
+  dataMap: new Map<string, ActivityType>(),
+  groupedMap: [],
+  inboxStats: {
+    inboxTotal: 0,
+    errorTotal: 0,
+  },
+}
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND
+
 export default function CallListContextProvider({
   children,
 }: PropsWithChildren) {
-  const queryClient = useQueryClient()
+  const [isArchivingAllActivities, setArchivingAllActivities] = useState(false)
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
-  const getAllActivitiesQuery = useQuery<
-    PhoneCallResponseType[],
-    ResponseError
-  >({
-    queryKey: ['calls'],
-    queryFn: async () => {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_BACKEND}/activities`
-      )
-      return data as PhoneCallResponseType[]
-    },
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    // Retry only 2 times every 3 seconds
-    retry: 2,
-    retryDelay: 1000 * 3,
-  })
+  const getAllActivitiesQuery = useQuery<ActivityResponseType[], ResponseError>(
+    {
+      queryKey: ['activities'],
+      queryFn: async () => {
+        const { data } = await axios.get(`${BACKEND_URL}/activities`)
+        return data as ActivityResponseType[]
+      },
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      // Retry only 2 times every 3 seconds
+      retry: 2,
+      retryDelay: 1000 * 3,
+    }
+  )
 
   const updateActivityByIdMutation = useMutation<
-    PhoneCallResponseType,
+    unknown,
     ResponseError,
     ActivityIdParams
   >({
-    mutationKey: ['updateCall'],
+    mutationKey: ['updateActivity'],
     mutationFn: async (variables) => {
       const { data } = await axios.patch(
-        `${import.meta.env.VITE_BACKEND}/activities/${variables.id}`,
+        `${BACKEND_URL}/activities/${variables.id}`,
         {
           is_archived: variables.is_archived,
         }
       )
-      return data as PhoneCallResponseType
+      return data as ActivityResponseType
     },
-    retry: false,
+    onSuccess: (_, variables) => {
+      if (!variables.is_archived) {
+        dispatch({
+          type: 'UNARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      } else {
+        dispatch({
+          type: 'ARCHIVE_ACTIVITY',
+          id: variables.id,
+        })
+      }
+    },
   })
 
   const resetAllActivitiesMutation = useMutation<
-    PhoneCallResponseType[],
+    ActivityResponseType[],
     ResponseError
   >({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
-      const { data } = await axios.patch(
-        `${import.meta.env.VITE_BACKEND}/reset`
-      )
-      return data as PhoneCallResponseType[]
+      const { data } = await axios.patch(`${BACKEND_URL}/reset`)
+      return data as ActivityResponseType[]
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calls'] }),
+    onSuccess: () => {
+      dispatch({ type: 'UNARCHIVE_ALL_ACTIVITIES' })
+    },
     onError() {
       return toast({
         variant: 'destructive',
-        title: 'Error unarchiving calls',
-        description: 'Could not unarchive calls.',
+        title: 'Error unarchiving activities',
+        description: 'Could not unarchive all activities.',
       })
     },
   })
 
-  const unarchiveCall = useCallback(
-    (id: string) => {
-      updateActivityByIdMutation.mutateAsync({
-        id,
-        is_archived: false,
-      })
-    },
-    [updateActivityByIdMutation]
-  )
+  const unarchiveAllActivities = useCallback(() => {
+    resetAllActivitiesMutation.mutateAsync()
+  }, [resetAllActivitiesMutation])
 
-  const archiveCall = useCallback(
-    (id: string) => {
-      updateActivityByIdMutation.mutate({ id, is_archived: true })
-    },
-    [updateActivityByIdMutation]
-  )
+  const archiveAllActivities = useCallback(() => {
+    const allArchivedActivities = Array.from(state.dataMap).filter(
+      (e) => !e[1].is_archived
+    )
 
-  const archiveAllCalls = useCallback(async () => {
-    // Sanity check, make sure we can actually archive some calls
-    if (
-      !getAllActivitiesQuery.data ||
-      getAllActivitiesQuery.data.length === 0
-    ) {
+    // Ensure we have activities to archive
+    if (!allArchivedActivities || allArchivedActivities.length === 0) {
       return
     }
 
     // Batch mutations into an array of promises
-    const promises = getAllActivitiesQuery.data
-      .filter((e) => !e.is_archived)
-      .map((e) =>
-        updateActivityByIdMutation.mutateAsync({
-          id: e.id,
-          is_archived: true,
-        })
-      )
+    const mappedArchivePromises = allArchivedActivities.map((activity) =>
+      updateActivityByIdMutation.mutateAsync({
+        id: activity[1].id,
+        is_archived: true,
+      })
+    )
 
-    // Call batch mutations - Once settled, display an error if any activities could not be archived.
+    // Since we aren't using React Query to check the status, we manually update the state variable to indicate to other CallCards that we are archiving all activities
+    setArchivingAllActivities(true)
+
+    // Call batch mutations - Once settled, count the number of rejected (failed) responses and display an error if any activities could not be archived.
     // In this case, there will always be 7 activities that will fail as the invalid activities cannot be updated.
-    Promise.allSettled(promises)
+    Promise.allSettled(mappedArchivePromises)
       .then((values) => {
-        // Invalidate all calls - refetch all activities
-        queryClient.invalidateQueries({ queryKey: ['calls'] })
-
         const errorResponses = values.filter((e) => e.status === 'rejected')
+
         if (errorResponses.length > 0) {
           return toast({
             variant: 'destructive',
@@ -158,6 +246,7 @@ export default function CallListContextProvider({
             description: `Could not archive ${errorResponses.length} activities.`,
           })
         }
+
         // Again, in this case, this should never be called unless the backend updates invalid calls.
         return toast({
           variant: 'default',
@@ -173,13 +262,13 @@ export default function CallListContextProvider({
           description: `Check the console for more information.`,
         })
       })
-  }, [getAllActivitiesQuery.data, queryClient, updateActivityByIdMutation])
+      .finally(() => {
+        // Make sure to set this to false so cards aren't stuck in a loading state
+        setArchivingAllActivities(false)
+      })
+  }, [state.dataMap, updateActivityByIdMutation])
 
-  const unarchiveAllCalls = useCallback(() => {
-    resetAllActivitiesMutation.mutateAsync()
-  }, [resetAllActivitiesMutation])
-
-  const transformPhoneCall = useCallback((object: PhoneCallResponseType) => {
+  const transformActivity = useCallback((object: ActivityResponseType) => {
     const createdAtDate = new Date(object.created_at)
     if (
       object.call_type &&
@@ -192,7 +281,7 @@ export default function CallListContextProvider({
         ...object,
         isValid: true,
         created_at: createdAtDate,
-      } as PhoneCallType
+      } as ActivityType
     }
 
     return {
@@ -201,82 +290,97 @@ export default function CallListContextProvider({
       is_archived: object.is_archived,
       duration: object.duration,
       isValid: false,
-    } as PhoneCallType
+    } as ActivityType
   }, [])
 
-  const hashPhoneCallKey = useCallback((call: PhoneCallType) => {
-    return call.created_at.toLocaleString('default', {
+  const hashActivityKey = useCallback((activity: ActivityType) => {
+    return activity.created_at.toLocaleString('default', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     })
   }, [])
 
-  const allActivitiesData = useMemo<CachedActivityData>(() => {
-    const phoneCalls = getAllActivitiesQuery.data
-    if (!phoneCalls || phoneCalls.length === 0) {
-      return {
-        data: [],
-        inboxStats: {
-          errorCount: 0,
-          totalCount: 0,
-        },
-      }
+  useEffect(() => {
+    const activities = getAllActivitiesQuery.data
+
+    // Don't dispatch if there isn't any data
+    if (!activities || activities.length === 0) {
+      return
     }
 
-    const mappedData = phoneCalls.reduceRight(
+    const mappedData = activities.reduceRight(
       (accumulator, entry) => {
-        const phoneCall = transformPhoneCall(entry)
-        const dateKey = hashPhoneCallKey(phoneCall)
+        const activity = transformActivity(entry)
+        const dateKey = hashActivityKey(activity)
 
-        if (!phoneCall.is_archived) {
-          if (!phoneCall.isValid) {
+        if (!activity.is_archived) {
+          if (!activity.isValid) {
             accumulator.errorCount++
           }
           accumulator.totalCount++
         }
 
-        const foundMapEntry = accumulator.map.get(dateKey)
+        const foundMapEntry = accumulator.groupedMap.get(dateKey)
         if (foundMapEntry) {
-          foundMapEntry.calls.push(phoneCall)
+          foundMapEntry.activities.push(activity)
         } else {
-          accumulator.map.set(dateKey, { time: dateKey, calls: [phoneCall] })
+          accumulator.groupedMap.set(dateKey, {
+            time: dateKey,
+            activities: [activity],
+          })
         }
+
+        accumulator.dataMap.set(activity.id, activity)
 
         return accumulator
       },
-      { map: new Map<string, PhoneCallReturn>(), errorCount: 0, totalCount: 0 }
+      {
+        groupedMap: new Map<string, GroupedActivities>(),
+        dataMap: new Map<string, ActivityType>(),
+        errorCount: 0,
+        totalCount: 0,
+      }
     )
 
-    return {
-      data: Array.from(mappedData.map.values()),
-      inboxStats: {
-        errorCount: mappedData.errorCount,
-        totalCount: mappedData.totalCount,
+    dispatch({
+      type: 'SET_DATA',
+      data: {
+        dataMap: mappedData.dataMap,
+        groupedMap: Array.from(mappedData.groupedMap.values()),
+        inboxStats: {
+          errorTotal: mappedData.errorCount,
+          inboxTotal: mappedData.totalCount,
+        },
       },
-    }
-  }, [getAllActivitiesQuery.data, hashPhoneCallKey, transformPhoneCall])
+    })
+  }, [
+    getAllActivitiesQuery.data,
+    getAllActivitiesQuery.status,
+    hashActivityKey,
+    transformActivity,
+  ])
 
   const callListContextValue = useMemo(
     () => ({
-      archiveAllCalls,
-      unarchiveAllCalls,
-      unarchiveCall,
-      archiveCall,
+      archiveAllActivities,
+      unarchiveAllActivities,
       getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
-      allActivitiesData,
+
+      isArchivingAllActivities,
+      dispatch,
+      state,
     }),
     [
-      archiveAllCalls,
-      unarchiveAllCalls,
-      unarchiveCall,
-      archiveCall,
+      archiveAllActivities,
+      unarchiveAllActivities,
       getAllActivitiesQuery,
       updateActivityByIdMutation,
       resetAllActivitiesMutation,
-      allActivitiesData,
+      isArchivingAllActivities,
+      state,
     ]
   )
   return (

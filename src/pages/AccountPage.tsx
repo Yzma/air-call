@@ -39,8 +39,8 @@ export default function AccountPage() {
           <div className="flex flex-col gap-y-1">
             <SectionTitle>Password</SectionTitle>
             <SectionDescription>
-              You can set a permanent password if you don&apos;t want to use
-              temporary login codes.
+              Excepteur sint occaecat cupidatat non proident sunt in culpa qui
+              officia.
             </SectionDescription>
           </div>
           <div>

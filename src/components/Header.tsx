@@ -51,10 +51,14 @@ export default function Header() {
           <FontAwesomeIcon
             className={cn(
               `h-4 w-4 cursor-pointer hover:text-gray-700`,
-              navigation.excludeInvalidCalls ? 'text-green-500' : 'text-red-500'
+              navigation.excludeInvalidActivities
+                ? 'text-green-500'
+                : 'text-red-500'
             )}
             onClick={() =>
-              navigation.setExcludeInvalidCalls(!navigation.excludeInvalidCalls)
+              navigation.setExcludeInvalidActivities(
+                !navigation.excludeInvalidActivities
+              )
             }
             icon={faSliders}
           />

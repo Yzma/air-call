@@ -11,13 +11,13 @@ export default function useCallList() {
   }
 
   return {
-    allActivitiesData: context.allActivitiesData,
-    archiveAllCalls: context.archiveAllCalls,
-    archiveCall: context.archiveCall,
-    unarchiveAllCalls: context.unarchiveAllCalls,
-    unarchiveCall: context.unarchiveCall,
+    archiveAllActivities: context.archiveAllActivities,
+    unarchiveAllActivities: context.unarchiveAllActivities,
+    isArchivingAllActivities: context.isArchivingAllActivities,
     getAllActivitiesQuery: context.getAllActivitiesQuery,
     updateActivityByIdMutation: context.updateActivityByIdMutation,
     resetAllActivitiesMutation: context.resetAllActivitiesMutation,
+    state: context.state,
+    dispatch: context.dispatch,
   }
 }

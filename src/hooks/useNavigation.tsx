@@ -11,8 +11,8 @@ export function useNavigation() {
   }
 
   return {
-    excludeInvalidCalls: context.excludeInvalidCalls,
-    setExcludeInvalidCalls: context.setExcludeInvalidCalls,
+    excludeInvalidActivities: context.excludeInvalidActivities,
+    setExcludeInvalidActivities: context.setExcludeInvalidActivities,
     page: context.page,
     setPage: context.setPage,
     headerOption: context.headerOption,
