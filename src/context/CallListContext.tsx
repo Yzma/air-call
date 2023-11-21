@@ -17,10 +17,10 @@ import {
 import {
   type ResponseError,
   type ActivityIdParams,
-  type PhoneCallReturn,
-  type PhoneCallType,
+  type GroupedActivities,
+  type ActivityType,
 } from './types'
-import { type PhoneCallResponseType } from '@/types'
+import { type ActivityResponseType } from '@/types'
 import { toast } from '@components/ui/use-toast'
 
 export type CallListContextType = {
@@ -28,16 +28,16 @@ export type CallListContextType = {
   state: ReducerType
   archiveAllCalls: () => void
   unarchiveAllCalls: () => void
-  unarchiveCall: (call: PhoneCallType) => void
-  archiveCall: (call: PhoneCallType) => void
-  getAllActivitiesQuery: UseQueryResult<PhoneCallResponseType[], ResponseError>
+  unarchiveCall: (call: ActivityType) => void
+  archiveCall: (call: ActivityType) => void
+  getAllActivitiesQuery: UseQueryResult<ActivityResponseType[], ResponseError>
   updateActivityByIdMutation: UseMutationResult<
     unknown,
     ResponseError,
     ActivityIdParams
   >
   resetAllActivitiesMutation: UseMutationResult<
-    PhoneCallResponseType[],
+    ActivityResponseType[],
     ResponseError,
     void
   >
@@ -55,8 +55,8 @@ type Action =
   | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
 
 type ReducerType = {
-  dataMap: Map<string, PhoneCallType>
-  groupedMap: PhoneCallReturn[]
+  dataMap: Map<string, ActivityType>
+  groupedMap: GroupedActivities[]
   inboxStats: {
     inboxTotal: number
     errorTotal: number
@@ -121,7 +121,7 @@ function reducer(state: ReducerType, action: Action): ReducerType {
 }
 
 const INITIAL_STATE_DATA: ReducerType = {
-  dataMap: new Map<string, PhoneCallType>(),
+  dataMap: new Map<string, ActivityType>(),
   groupedMap: [],
   inboxStats: {
     inboxTotal: 0,
@@ -137,21 +137,20 @@ export default function CallListContextProvider({
   const [isArchivingAllActivities, setArchivingAllActivities] = useState(false)
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
-  const getAllActivitiesQuery = useQuery<
-    PhoneCallResponseType[],
-    ResponseError
-  >({
-    queryKey: ['calls'],
-    queryFn: async () => {
-      const { data } = await axios.get(`${BACKEND_URL}/activities`)
-      return data as PhoneCallResponseType[]
-    },
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    // Retry only 2 times every 3 seconds
-    retry: 2,
-    retryDelay: 1000 * 3,
-  })
+  const getAllActivitiesQuery = useQuery<ActivityResponseType[], ResponseError>(
+    {
+      queryKey: ['calls'],
+      queryFn: async () => {
+        const { data } = await axios.get(`${BACKEND_URL}/activities`)
+        return data as ActivityResponseType[]
+      },
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      // Retry only 2 times every 3 seconds
+      retry: 2,
+      retryDelay: 1000 * 3,
+    }
+  )
 
   const updateActivityByIdMutation = useMutation<
     unknown,
@@ -166,7 +165,7 @@ export default function CallListContextProvider({
           is_archived: variables.is_archived,
         }
       )
-      return data as PhoneCallResponseType
+      return data as ActivityResponseType
     },
     onSuccess: (_, variables) => {
       if (!variables.is_archived) {
@@ -184,13 +183,13 @@ export default function CallListContextProvider({
   })
 
   const resetAllActivitiesMutation = useMutation<
-    PhoneCallResponseType[],
+    ActivityResponseType[],
     ResponseError
   >({
     mutationKey: ['resetAll'],
     mutationFn: async () => {
       const { data } = await axios.patch(`${BACKEND_URL}/reset`)
-      return data as PhoneCallResponseType[]
+      return data as ActivityResponseType[]
     },
     onSuccess: () => {
       dispatch({ type: 'UNARCHIVE_ALL_ACTIVITIES' })
@@ -209,7 +208,7 @@ export default function CallListContextProvider({
   }, [resetAllActivitiesMutation])
 
   const unarchiveCall = useCallback(
-    (call: PhoneCallType) =>
+    (call: ActivityType) =>
       updateActivityByIdMutation.mutateAsync({
         id: call.id,
         is_archived: false,
@@ -218,7 +217,7 @@ export default function CallListContextProvider({
   )
 
   const archiveCall = useCallback(
-    (call: PhoneCallType) =>
+    (call: ActivityType) =>
       updateActivityByIdMutation.mutateAsync({
         id: call.id,
         is_archived: true,
@@ -279,7 +278,7 @@ export default function CallListContextProvider({
       })
   }, [state.dataMap, updateActivityByIdMutation])
 
-  const transformPhoneCall = useCallback((object: PhoneCallResponseType) => {
+  const transformActivity = useCallback((object: ActivityResponseType) => {
     const createdAtDate = new Date(object.created_at)
     if (
       object.call_type &&
@@ -292,7 +291,7 @@ export default function CallListContextProvider({
         ...object,
         isValid: true,
         created_at: createdAtDate,
-      } as PhoneCallType
+      } as ActivityType
     }
 
     return {
@@ -301,10 +300,10 @@ export default function CallListContextProvider({
       is_archived: object.is_archived,
       duration: object.duration,
       isValid: false,
-    } as PhoneCallType
+    } as ActivityType
   }, [])
 
-  const hashPhoneCallKey = useCallback((call: PhoneCallType) => {
+  const hashActivityKey = useCallback((call: ActivityType) => {
     return call.created_at.toLocaleString('default', {
       month: 'long',
       day: 'numeric',
@@ -313,20 +312,20 @@ export default function CallListContextProvider({
   }, [])
 
   useEffect(() => {
-    const phoneCalls = getAllActivitiesQuery.data
+    const activities = getAllActivitiesQuery.data
 
     // Don't dispatch if there isn't any data
-    if (!phoneCalls || phoneCalls.length === 0) {
+    if (!activities || activities.length === 0) {
       return
     }
 
-    const mappedData = phoneCalls.reduceRight(
+    const mappedData = activities.reduceRight(
       (accumulator, entry) => {
-        const phoneCall = transformPhoneCall(entry)
-        const dateKey = hashPhoneCallKey(phoneCall)
+        const activity = transformActivity(entry)
+        const dateKey = hashActivityKey(activity)
 
-        if (!phoneCall.is_archived) {
-          if (!phoneCall.isValid) {
+        if (!activity.is_archived) {
+          if (!activity.isValid) {
             accumulator.errorCount++
           }
           accumulator.totalCount++
@@ -334,21 +333,21 @@ export default function CallListContextProvider({
 
         const foundMapEntry = accumulator.groupedMap.get(dateKey)
         if (foundMapEntry) {
-          foundMapEntry.calls.push(phoneCall)
+          foundMapEntry.calls.push(activity)
         } else {
           accumulator.groupedMap.set(dateKey, {
             time: dateKey,
-            calls: [phoneCall],
+            calls: [activity],
           })
         }
 
-        accumulator.dataMap.set(phoneCall.id, phoneCall)
+        accumulator.dataMap.set(activity.id, activity)
 
         return accumulator
       },
       {
-        groupedMap: new Map<string, PhoneCallReturn>(),
-        dataMap: new Map<string, PhoneCallType>(),
+        groupedMap: new Map<string, GroupedActivities>(),
+        dataMap: new Map<string, ActivityType>(),
         errorCount: 0,
         totalCount: 0,
       }
@@ -368,8 +367,8 @@ export default function CallListContextProvider({
   }, [
     getAllActivitiesQuery.data,
     getAllActivitiesQuery.status,
-    hashPhoneCallKey,
-    transformPhoneCall,
+    hashActivityKey,
+    transformActivity,
   ])
 
   const callListContextValue = useMemo(

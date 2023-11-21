@@ -10,7 +10,7 @@ import {
   faVoicemail,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { type PhoneCallCardType } from './types'
+import { type ActivityCardType } from './types'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   Dialog,
@@ -28,7 +28,7 @@ import { toast } from '@components/ui/use-toast'
 
 export const CallCard = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & PhoneCallCardType
+  React.HTMLAttributes<HTMLDivElement> & ActivityCardType
 >(({ call, ...props }, ref) => {
   const callList = useCallList()
   const [locallyUpdating, setLocallyUpdating] = useState(false)

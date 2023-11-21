@@ -1,13 +1,13 @@
-import { type PhoneCallResponseType } from '@/types'
+import { type ActivityResponseType } from '@/types'
 import { type AxiosError } from 'axios'
 
-export type PhoneCallType = {
+export type ActivityType = {
   created_at: Date
-} & Pick<PhoneCallResponseType, 'id' | 'is_archived' | 'duration'> &
+} & Pick<ActivityResponseType, 'id' | 'is_archived' | 'duration'> &
   (
     | (Required<
         Pick<
-          PhoneCallResponseType,
+          ActivityResponseType,
           'direction' | 'from' | 'to' | 'via' | 'call_type'
         >
       > & {
@@ -18,9 +18,9 @@ export type PhoneCallType = {
       }
   )
 
-export type PhoneCallReturn = {
+export type GroupedActivities = {
   time: string
-  calls: PhoneCallType[]
+  calls: ActivityType[]
 }
 
 export type ActivityIdParams = {
