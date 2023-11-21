@@ -52,6 +52,13 @@ type Action =
   | { type: 'UNARCHIVE_ACTIVITY'; id: string }
   | { type: 'UNARCHIVE_ALL_ACTIVITIES' }
 
+/**
+ * dataMap: The actual cache of all the activities
+ * groupedMap: An array of all the activities grouped by their date (for rendering)
+ * inboxStats:
+ *   inboxTotal: The amount of unarchived activities (Used by the footer to display the current count)
+ *   errorTotal: The amount of invalid activities (Also used by the footer to display the current count)
+ */
 type ReducerType = {
   dataMap: Map<string, ActivityType>
   groupedMap: GroupedActivities[]
@@ -223,9 +230,10 @@ export default function CallListContextProvider({
       })
     )
 
+    // Since we aren't using React Query to check the status, we manually update the state variable to indicate to other CallCards that we are archiving all activities
     setArchivingAllActivities(true)
 
-    // Call batch mutations - Once settled, display an error if any activities could not be archived.
+    // Call batch mutations - Once settled, count the number of rejected (failed) responses and display an error if any activities could not be archived.
     // In this case, there will always be 7 activities that will fail as the invalid activities cannot be updated.
     Promise.allSettled(mappedArchivePromises)
       .then((values) => {
@@ -238,6 +246,7 @@ export default function CallListContextProvider({
             description: `Could not archive ${errorResponses.length} activities.`,
           })
         }
+
         // Again, in this case, this should never be called unless the backend updates invalid calls.
         return toast({
           variant: 'default',
@@ -254,6 +263,7 @@ export default function CallListContextProvider({
         })
       })
       .finally(() => {
+        // Make sure to set this to false so cards aren't stuck in a loading state
         setArchivingAllActivities(false)
       })
   }, [state.dataMap, updateActivityByIdMutation])
