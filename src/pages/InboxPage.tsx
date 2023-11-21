@@ -23,8 +23,6 @@ export default function InboxPage() {
     if (call.getAllActivitiesQuery.status === 'pending') {
       return <LoadingCards />
     }
-    // TODO: Console log
-    console.log('state: ', call.state)
 
     return (
       <>
