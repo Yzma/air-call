@@ -135,7 +135,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND
 export default function CallListContextProvider({
   children,
 }: PropsWithChildren) {
-  const queryClient = useQueryClient()
   const [isArchivingAllActivities, setArchivingAllActivities] = useState(false)
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE_DATA)
 
@@ -154,8 +153,6 @@ export default function CallListContextProvider({
     retry: 2,
     retryDelay: 1000 * 3,
   })
-
-  // console.log('getAllActivitiesQuery.data', getAllActivitiesQuery.data)
 
   const updateActivityByIdMutation = useMutation<
     unknown,
@@ -319,14 +316,10 @@ export default function CallListContextProvider({
   useEffect(() => {
     const phoneCalls = getAllActivitiesQuery.data
 
-    console.log('111')
-
     // Don't dispatch if there isn't any data
     if (!phoneCalls || phoneCalls.length === 0) {
       return
     }
-
-    console.log('222')
 
     const mappedData = phoneCalls.reduceRight(
       (accumulator, entry) => {
