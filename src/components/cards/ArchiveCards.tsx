@@ -19,7 +19,7 @@ export const UnarchiveAllCard = React.forwardRef<
     <ArchiveCard
       ref={ref}
       className={cn(className)}
-      onClick={() => callList.unarchiveAllCalls()}
+      onClick={() => callList.unarchiveAllActivities()}
       {...props}
     >
       <ArchiveCardContent>
@@ -40,7 +40,7 @@ export const ArchiveAllCard = React.forwardRef<
     <ArchiveCard
       ref={ref}
       className={cn(className)}
-      onClick={() => callList.archiveAllCalls()}
+      onClick={() => callList.archiveAllActivities()}
       {...props}
     >
       <ArchiveCardContent>

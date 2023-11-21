@@ -29,18 +29,18 @@ import { toast } from '@components/ui/use-toast'
 export const CallCard = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & ActivityCardType
->(({ call, ...props }, ref) => {
+>(({ activity, ...props }, ref) => {
   const callList = useCallList()
   const [locallyUpdating, setLocallyUpdating] = useState(false)
 
-  const updateCall = useCallback(async () => {
+  const updateActivity = useCallback(async () => {
     // Remember to set locallyUpdating to true, and false when the query is finished
     setLocallyUpdating(true)
     return callList.updateActivityByIdMutation
       .mutateAsync(
         {
-          id: call.id,
-          is_archived: !call.is_archived,
+          id: activity.id,
+          is_archived: !activity.is_archived,
         },
         {
           onError(_, variables) {
@@ -55,7 +55,7 @@ export const CallCard = React.forwardRef<
         }
       )
       .finally(() => setLocallyUpdating(false))
-  }, [call.id, call.is_archived, callList])
+  }, [activity.id, activity.is_archived, callList])
 
   // isLoading is true if one of the three things are true:
   // 1. If locallyUpdating is true - trigger when a user tries to archive/unarchive the call by clicking the button to do so (calling updateCall())
@@ -64,12 +64,12 @@ export const CallCard = React.forwardRef<
   const isLoading = useMemo(() => {
     return (
       locallyUpdating ||
-      (!call.is_archived && callList.isArchivingAllActivities) ||
-      (call.is_archived &&
+      (!activity.is_archived && callList.isArchivingAllActivities) ||
+      (activity.is_archived &&
         callList.resetAllActivitiesMutation.status === 'pending')
     )
   }, [
-    call.is_archived,
+    activity.is_archived,
     callList.isArchivingAllActivities,
     callList.resetAllActivitiesMutation.status,
     locallyUpdating,
@@ -92,9 +92,9 @@ export const CallCard = React.forwardRef<
               <div className="relative">
                 <DialogTrigger>
                   <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full hover:bg-gray-200">
-                    {call.isValid ? (
+                    {activity.isValid ? (
                       <div>
-                        {call.call_type === 'voicemail' ? (
+                        {activity.call_type === 'voicemail' ? (
                           <FontAwesomeIcon
                             icon={faVoicemail}
                             className="h-5 w-5 text-gray-400 group-hover:text-gray-700"
@@ -103,7 +103,7 @@ export const CallCard = React.forwardRef<
                           <>
                             <FontAwesomeIcon
                               icon={
-                                call.call_type === 'answered'
+                                activity.call_type === 'answered'
                                   ? faPhone
                                   : faPhoneSlash
                               }
@@ -111,7 +111,7 @@ export const CallCard = React.forwardRef<
                             />
                             <FontAwesomeIcon
                               icon={
-                                call.direction === 'inbound'
+                                activity.direction === 'inbound'
                                   ? faArrowDown
                                   : faArrowUp
                               }
@@ -133,23 +133,23 @@ export const CallCard = React.forwardRef<
                 <p
                   className={cn(
                     'flex gap-x-1 font-bold text-black',
-                    (!call.isValid || call.call_type === 'missed') &&
+                    (!activity.isValid || activity.call_type === 'missed') &&
                       'text-destructive'
                   )}
                 >
-                  {call.isValid ? call.from : 'Unknown'}
+                  {activity.isValid ? activity.from : 'Unknown'}
                 </p>
                 <p className="line-clamp-1 overflow-hidden text-ellipsis text-gray-400 group-hover:text-gray-700">
-                  tried to call {call.isValid ? call.to : 'Unknown'}
+                  tried to call {activity.isValid ? activity.to : 'Unknown'}
                 </p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-x-2 text-gray-400">
               <div
                 className="group flex h-7 w-7 cursor-pointer items-center justify-center rounded-full hover:bg-gray-300"
-                onClick={() => updateCall()}
+                onClick={() => updateActivity()}
               >
-                {call.is_archived ? (
+                {activity.is_archived ? (
                   <FontAwesomeIcon
                     icon={faBoxOpen}
                     className="h-4 w-4 text-gray-500 group-hover:text-gray-800"
@@ -164,10 +164,10 @@ export const CallCard = React.forwardRef<
 
               <div className="flex items-center gap-x-2">
                 <div className="flex w-8 items-center justify-end group-hover:text-gray-700">
-                  {getDateTime(call.created_at)}
+                  {getDateTime(activity.created_at)}
                 </div>
                 <div className="flex items-center border-y border-l px-1 text-xs font-bold group-hover:border-gray-300 group-hover:text-gray-700">
-                  {getDateTimePeriod(call.created_at)}
+                  {getDateTimePeriod(activity.created_at)}
                 </div>
               </div>
             </div>
@@ -176,12 +176,14 @@ export const CallCard = React.forwardRef<
 
         <DialogContent className="w-80">
           <DialogHeader>
-            <DialogTitle>{call.isValid ? call.from : 'Unknown'}</DialogTitle>
+            <DialogTitle>
+              {activity.isValid ? activity.from : 'Unknown'}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="flex flex-col">
               <div>
-                {call.created_at.toLocaleDateString('en-US', {
+                {activity.created_at.toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -189,22 +191,27 @@ export const CallCard = React.forwardRef<
                 })}
               </div>
               <div>
-                {call.created_at.toLocaleTimeString('en-US', {
+                {activity.created_at.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
                 })}
               </div>
-              <div>{convertSeconds(call.duration)}</div>
-              {call.isValid && (
+              <div>{convertSeconds(activity.duration)}</div>
+              {activity.isValid && (
                 <div>
-                  {call.direction === 'inbound' ? 'Inbound' : 'Outbound'} Call
+                  {activity.direction === 'inbound' ? 'Inbound' : 'Outbound'}{' '}
+                  Call
                 </div>
               )}
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button size={'sm'} type="submit" onClick={() => updateCall()}>
-                  {call.is_archived ? <>Unarchive</> : <>Archive</>}
+                <Button
+                  size={'sm'}
+                  type="submit"
+                  onClick={() => updateActivity()}
+                >
+                  {activity.is_archived ? <>Unarchive</> : <>Archive</>}
                 </Button>
               </DialogClose>
             </DialogFooter>

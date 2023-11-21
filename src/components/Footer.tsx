@@ -49,12 +49,12 @@ export default function Footer() {
   const currentActivityCount = useMemo(() => {
     let count = callList.state.inboxStats.inboxTotal
 
-    if (nav.excludeInvalidCalls) {
+    if (nav.excludeInvalidActivities) {
       count -= callList.state.inboxStats.errorTotal
     }
 
     return count
-  }, [callList.state, nav.excludeInvalidCalls])
+  }, [callList.state, nav.excludeInvalidActivities])
 
   return (
     <footer className="relative flex h-12 items-center justify-between rounded-b-xl border-t border-gray-100 bg-white px-6 shadow-[rgba(0,_0,_0,_0.05)_0px_-1px_4px_0px]">

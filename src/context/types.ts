@@ -20,7 +20,7 @@ export type ActivityType = {
 
 export type GroupedActivities = {
   time: string
-  calls: ActivityType[]
+  activities: ActivityType[]
 }
 
 export type ActivityIdParams = {

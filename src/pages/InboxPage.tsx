@@ -11,16 +11,16 @@ import LoadingCards from '@components/LoadingCards'
 import { ErrorCard } from '@components/cards/ErrorCard'
 
 export default function InboxPage() {
-  const call = useCallList()
+  const callList = useCallList()
   const nav = useNavigation()
 
   // Wrapped in a memo due to an unnecessary rerender happening when switching tabs in the footer.
   const inboxMemo = useMemo(() => {
-    if (call.getAllActivitiesQuery.status === 'error') {
+    if (callList.getAllActivitiesQuery.status === 'error') {
       return <ErrorCard />
     }
 
-    if (call.getAllActivitiesQuery.status === 'pending') {
+    if (callList.getAllActivitiesQuery.status === 'pending') {
       return <LoadingCards />
     }
 
@@ -31,19 +31,19 @@ export default function InboxPage() {
         ) : (
           <UnarchiveAllCard />
         )}
-        {call.state.groupedMap.map((e) => {
-          const calls = e.calls.filter((e) => {
+        {callList.state.groupedMap.map((e) => {
+          const activities = e.activities.filter((e) => {
             return (
-              (nav.excludeInvalidCalls ? e.isValid : true) && // If excludeInvalidCalls is true, then exclude all invalid calls (on both the inbox and archived page)
+              (nav.excludeInvalidActivities ? e.isValid : true) && // If excludeInvalidCalls is true, then exclude all invalid calls (on both the inbox and archived page)
               (nav.headerOption === 'inbox' ? !e.is_archived : e.is_archived) // Only show call that aren't archived in the inbox tab, and only show archive calls in the archive tab
             )
           })
           return (
-            calls.length > 0 && (
+            activities.length > 0 && (
               <Fragment key={e.time}>
                 <CallSeparator>{e.time}</CallSeparator>
-                {calls.map((call) => {
-                  return <CallCard call={call} key={call.id} />
+                {activities.map((activity) => {
+                  return <CallCard activity={activity} key={activity.id} />
                 })}
               </Fragment>
             )
@@ -52,9 +52,9 @@ export default function InboxPage() {
       </>
     )
   }, [
-    call.getAllActivitiesQuery.status,
-    call.state,
-    nav.excludeInvalidCalls,
+    callList.getAllActivitiesQuery.status,
+    callList.state,
+    nav.excludeInvalidActivities,
     nav.headerOption,
   ])
 
