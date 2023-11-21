@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ReactQueryDevtools initialIsOpen={false} />
-      <NavigationContextProvider excludeInvalidCalls={false}>
+      <NavigationContextProvider excludeInvalidActivities={false}>
         <CallListContextProvider>
           <App />
         </CallListContextProvider>
