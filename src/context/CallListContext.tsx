@@ -154,14 +154,14 @@ export default function CallListContextProvider({
       return data as PhoneCallResponseType
     },
     onSuccess: (_, variables) => {
-      if (variables.is_archived) {
+      if (!variables.is_archived) {
         dispatch({
-          type: 'ARCHIVE_ACTIVITY',
+          type: 'UNARCHIVE_ACTIVITY',
           id: variables.id,
         })
       } else {
         dispatch({
-          type: 'UNARCHIVE_ACTIVITY',
+          type: 'ARCHIVE_ACTIVITY',
           id: variables.id,
         })
       }
@@ -211,20 +211,19 @@ export default function CallListContextProvider({
   )
 
   const archiveAllCalls = useCallback(() => {
+    const arr = Array.from(state.dataMap)
+
     // Sanity check, make sure we can actually archive some calls
-    if (
-      !getAllActivitiesQuery.data ||
-      getAllActivitiesQuery.data.length === 0
-    ) {
+    if (!arr || arr.length === 0) {
       return
     }
 
     // Batch mutations into an array of promises
-    const promises = getAllActivitiesQuery.data
-      .filter((e) => !e.is_archived)
+    const promises = arr
+      .filter((e) => !e[1].is_archived)
       .map((e) =>
         updateActivityByIdMutation.mutateAsync({
-          id: e.id,
+          id: e[1].id,
           is_archived: true,
         })
       )
@@ -236,6 +235,7 @@ export default function CallListContextProvider({
     Promise.allSettled(promises)
       .then((values) => {
         const errorResponses = values.filter((e) => e.status === 'rejected')
+
         if (errorResponses.length > 0) {
           return toast({
             variant: 'destructive',
@@ -261,7 +261,7 @@ export default function CallListContextProvider({
       .finally(() => {
         setArchivingAllActivities(false)
       })
-  }, [getAllActivitiesQuery.data, updateActivityByIdMutation])
+  }, [state.dataMap, updateActivityByIdMutation])
 
   const transformPhoneCall = useCallback((object: PhoneCallResponseType) => {
     const createdAtDate = new Date(object.created_at)
@@ -304,7 +304,6 @@ export default function CallListContextProvider({
       return
     }
 
-    console.log('is group by running?')
     const mappedData = phoneCalls.reduceRight(
       (accumulator, entry) => {
         const phoneCall = transformPhoneCall(entry)
